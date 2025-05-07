@@ -1,0 +1,194 @@
+local love = require("love")
+local conf = require("conf")
+local resources = require("resources")
+
+local rendering = {}
+
+---Calculates board dimensions and positions based on window size and configuration
+---@return table containing all calculated dimensions and positions
+function rendering.calculateBoardDimensions()
+    local windowWidth = love.graphics.getWidth()
+    local windowHeight = love.graphics.getHeight()
+
+    -- Calculate the total available space for the board using percentage-based padding
+    local availableWidth = windowWidth * (1 - (conf.window.padding.left + conf.window.padding.right))
+    local availableHeight = windowHeight * (1 - (conf.window.padding.top + conf.window.padding.bottom))
+
+    -- Limit the board size to the maximum allowed size
+    if (conf.field.max_size.width < availableWidth) then
+        availableWidth = conf.field.max_size.width
+    end
+
+    if (conf.field.max_size.height < availableHeight) then
+        availableHeight = conf.field.max_size.height
+    end
+
+    -- Calculate the space needed for all gaps
+    local totalCellGaps = conf.field.size - 1
+    local cellSize = math.min(
+        availableWidth /
+        (conf.field.size + (conf.field.size - 1) * conf.cell.gap_ratio + conf.field.gap_ratio.left + conf.field.gap_ratio.right),
+        availableHeight /
+        (conf.field.size + (conf.field.size - 1) * conf.cell.gap_ratio + conf.field.gap_ratio.top + conf.field.gap_ratio.bottom)
+    )
+    local cellGap = cellSize * conf.cell.gap_ratio
+    local fieldGaps = {
+        top = cellSize * conf.field.gap_ratio.top,
+        bottom = cellSize * conf.field.gap_ratio.bottom,
+        left = cellSize * conf.field.gap_ratio.left,
+        right = cellSize * conf.field.gap_ratio.right
+    }
+
+    local totalHorizontalGaps = (cellGap * totalCellGaps) + fieldGaps.left + fieldGaps.right
+    local totalVerticalGaps = (cellGap * totalCellGaps) + fieldGaps.top + fieldGaps.bottom
+
+    -- Calculate total board size including gaps
+    local boardWidth = (cellSize * conf.field.size) + totalHorizontalGaps
+    local boardHeight = (cellSize * conf.field.size) + totalVerticalGaps
+
+    -- Calculate starting position to center the board
+    local startX = (windowWidth / 2) - (boardWidth / 2)
+    local startY = (windowHeight / 2) - (boardHeight / 2)
+
+    return {
+        cellSize = cellSize,
+        cellGap = cellGap,
+        fieldGaps = fieldGaps,
+        boardWidth = boardWidth,
+        boardHeight = boardHeight,
+        startX = startX,
+        startY = startY
+    }
+end
+
+---Draws the board background
+---@param dimensions table containing board dimensions and positions
+function rendering.drawBoardBackground(dimensions)
+    love.graphics.setColor(conf.colors.white)
+    love.graphics.draw(resources.textures.field_black, dimensions.startX, dimensions.startY, 0,
+        dimensions.boardWidth / resources.textures.field_black:getWidth(),
+        dimensions.boardHeight / resources.textures.field_black:getHeight())
+end
+
+---Draws a single cell with its shadow and multiplier
+---@param x number X position of the cell
+---@param y number Y position of the cell
+---@param cellSize number Size of the cell
+---@param multiplier number Cell multiplier value
+function rendering.drawCell(x, y, cellSize, multiplier)
+    -- Draw cell
+    if resources.textures.cell then
+        love.graphics.setColor(conf.cell.colors.multiplier[multiplier])
+        love.graphics.draw(resources.textures.cell, x, y, 0, cellSize / resources.textures.cell:getWidth(),
+            cellSize / resources.textures.cell:getHeight())
+    end
+
+    -- Draw cell shadow
+    if resources.textures.cell_shadow then
+        love.graphics.setColor(conf.cell.colors.shadow)
+        love.graphics.draw(resources.textures.cell_shadow, x, y, 0,
+            cellSize / resources.textures.cell_shadow:getWidth(),
+            cellSize / resources.textures.cell_shadow:getHeight())
+    end
+
+    -- Draw multiplier if greater than 1
+    if multiplier > 1 then
+        -- Draw cross
+        if resources.textures.cross then
+            local cross_scale = (cellSize * conf.text.letter_scale_factor * 0.4) /
+                math.max(resources.textures.cross:getWidth(), resources.textures.cross:getHeight())
+
+            local posX = (x + cellSize / 2) - cross_scale * resources.textures.cross:getWidth() / 2 - cellSize * 0.2
+            local posY = (y + cellSize / 2) - cross_scale * resources.textures.cross:getHeight() / 2
+            love.graphics.setColor(conf.text.colors.multiplier[multiplier])
+            love.graphics.draw(resources.textures.cross, posX, posY, 0, cross_scale, cross_scale)
+        end
+
+        -- Draw multiplier number
+        love.graphics.setColor(conf.text.colors.multiplier[multiplier])
+        love.graphics.setFont(resources.fonts.default)
+
+        local font = love.graphics.getFont()
+        local multiplierText = tostring(multiplier)
+        local multiplierWidth = font:getWidth(multiplierText)
+        local multiplierHeight = font:getHeight()
+        local multiplier_scale = (cellSize * conf.text.letter_scale_factor) / multiplierHeight
+
+        love.graphics.push()
+        love.graphics.scale(multiplier_scale)
+        local scaledX = (x + (cellSize - multiplierWidth * multiplier_scale) / 2 + cellSize * 0.25 - cellSize * conf.text.offset) /
+            multiplier_scale
+        local scaledY = (y + (cellSize - multiplierHeight * multiplier_scale) / 2 - cellSize * conf.text.offset + cellSize * 0.1) /
+            multiplier_scale
+        love.graphics.print(multiplierText, scaledX, scaledY)
+        love.graphics.pop()
+    end
+end
+
+---Draws a game element (letter and points)
+---@param x number X position of the cell
+---@param y number Y position of the cell
+---@param cellSize number Size of the cell
+---@param element table Element data containing letter and points
+function rendering.drawElement(x, y, cellSize, element)
+    if not element then return end
+
+    love.graphics.setColor(conf.colors.white)
+    love.graphics.draw(resources.textures.element, x, y, 0, cellSize / resources.textures.element:getWidth(),
+        cellSize / resources.textures.element:getHeight())
+
+    love.graphics.setColor(conf.text.colors.element)
+    love.graphics.setFont(resources.fonts.default)
+
+    local font = love.graphics.getFont()
+    local textWidth = font:getWidth(element.letter)
+    local textHeight = font:getHeight()
+
+    -- Calculate scale based on cell size
+    local letter_scale = (cellSize * conf.text.letter_scale_factor) / textHeight
+    local point_scale = letter_scale * conf.text.point_scale_factor
+
+    -- Draw letter
+    love.graphics.push()
+    love.graphics.scale(letter_scale)
+    local scaledX = (x + (cellSize - textWidth * letter_scale) / 2 - cellSize * conf.text.offset) / letter_scale
+    local scaledY = (y + (cellSize - textHeight * letter_scale) / 2 - cellSize * conf.text.offset) / letter_scale
+    love.graphics.print(element.letter, scaledX, scaledY)
+    love.graphics.pop()
+
+    -- Draw points
+    local pointsText = tostring(element.points)
+    local pointsWidth = font:getWidth(pointsText)
+    local pointsHeight = font:getHeight()
+
+    love.graphics.push()
+    love.graphics.scale(point_scale)
+    local scaledPointsX = (x + cellSize - pointsWidth * point_scale - cellSize * conf.text.offset) / point_scale
+    local scaledPointsY = (y + cellSize - pointsHeight * point_scale - cellSize * conf.text.offset) / point_scale
+    love.graphics.print(pointsText, scaledPointsX, scaledPointsY)
+    love.graphics.pop()
+end
+
+---Draws the game board and all its elements
+---@param state State
+function rendering.draw(state)
+    love.graphics.clear(conf.colors.background)
+
+    local dimensions = rendering.calculateBoardDimensions()
+    rendering.drawBoardBackground(dimensions)
+
+    -- Draw cells and their contents
+    for i = 1, conf.field.size do
+        for j = 1, conf.field.size do
+            -- Calculate position with gaps
+            local x = dimensions.startX + dimensions.fieldGaps.left +
+                (j - 1) * (dimensions.cellSize + dimensions.cellGap)
+            local y = dimensions.startY + dimensions.fieldGaps.top + (i - 1) * (dimensions.cellSize + dimensions.cellGap)
+
+            rendering.drawCell(x, y, dimensions.cellSize, state.board.cells[i][j].multiplier)
+            rendering.drawElement(x, y, dimensions.cellSize, state.board.elements[i][j])
+        end
+    end
+end
+
+return rendering
