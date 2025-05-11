@@ -1,6 +1,8 @@
 local love = require("love")
 local conf = require("conf")
+
 local resources = require("resources")
+local utils = require("utils")
 
 local rendering = {}
 
@@ -63,7 +65,7 @@ end
 
 ---Draws the board background
 ---@param dimensions table containing board dimensions and positions
-function rendering.drawBoardBackground(dimensions)
+function rendering.drawBoardBg(dimensions)
     love.graphics.setColor(conf.colors.white)
     love.graphics.draw(resources.textures.field_black, dimensions.startX, dimensions.startY, 0,
         dimensions.boardWidth / resources.textures.field_black:getWidth(),
@@ -74,11 +76,11 @@ end
 ---@param x number X position of the cell
 ---@param y number Y position of the cell
 ---@param cellSize number Size of the cell
----@param multiplier number Cell multiplier value
-function rendering.drawCell(x, y, cellSize, multiplier)
+---@param cell Cell
+function rendering.drawCell(x, y, cellSize, cell)
     -- Draw cell
     if resources.textures.cell then
-        love.graphics.setColor(conf.cell.colors.multiplier[multiplier])
+        love.graphics.setColor(conf.cell.colors.multiplier[cell.multiplier])
         love.graphics.draw(resources.textures.cell, x, y, 0, cellSize / resources.textures.cell:getWidth(),
             cellSize / resources.textures.cell:getHeight())
     end
@@ -92,7 +94,7 @@ function rendering.drawCell(x, y, cellSize, multiplier)
     end
 
     -- Draw multiplier if greater than 1
-    if multiplier > 1 then
+    if cell.multiplier > 1 then
         -- Draw cross
         if resources.textures.cross then
             local cross_scale = (cellSize * conf.text.letter_scale_factor * 0.4) /
@@ -100,16 +102,16 @@ function rendering.drawCell(x, y, cellSize, multiplier)
 
             local posX = (x + cellSize / 2) - cross_scale * resources.textures.cross:getWidth() / 2 - cellSize * 0.2
             local posY = (y + cellSize / 2) - cross_scale * resources.textures.cross:getHeight() / 2
-            love.graphics.setColor(conf.text.colors.multiplier[multiplier])
+            love.graphics.setColor(conf.text.colors.multiplier[cell.multiplier])
             love.graphics.draw(resources.textures.cross, posX, posY, 0, cross_scale, cross_scale)
         end
 
         -- Draw multiplier number
-        love.graphics.setColor(conf.text.colors.multiplier[multiplier])
+        love.graphics.setColor(conf.text.colors.multiplier[cell.multiplier])
         love.graphics.setFont(resources.fonts.default)
 
         local font = love.graphics.getFont()
-        local multiplierText = tostring(multiplier)
+        local multiplierText = tostring(cell.multiplier)
         local multiplierWidth = font:getWidth(multiplierText)
         local multiplierHeight = font:getHeight()
         local multiplier_scale = (cellSize * conf.text.letter_scale_factor) / multiplierHeight
@@ -130,7 +132,7 @@ end
 ---@param y number Y position of the cell
 ---@param cellSize number Size of the cell
 ---@param element table Element data containing letter and points
-function rendering.drawElement(x, y, cellSize, element)
+function rendering.drawElem(x, y, cellSize, element)
     if not element then return end
 
     love.graphics.setColor(conf.colors.white)
@@ -175,7 +177,7 @@ function rendering.draw(state)
     love.graphics.clear(conf.colors.background)
 
     local dimensions = rendering.calculateBoardDimensions()
-    rendering.drawBoardBackground(dimensions)
+    rendering.drawBoardBg(dimensions)
 
     -- Draw cells and their contents
     for i = 1, conf.field.size do
@@ -185,8 +187,8 @@ function rendering.draw(state)
                 (j - 1) * (dimensions.cellSize + dimensions.cellGap)
             local y = dimensions.startY + dimensions.fieldGaps.top + (i - 1) * (dimensions.cellSize + dimensions.cellGap)
 
-            rendering.drawCell(x, y, dimensions.cellSize, state.board.cells[i][j].multiplier)
-            rendering.drawElement(x, y, dimensions.cellSize, state.board.elements[i][j])
+            rendering.drawCell(x, y, dimensions.cellSize, utils.getBoardCell(state, i, j))
+            rendering.drawElem(x, y, dimensions.cellSize, utils.getBoardElem(state, i, j))
         end
     end
 end

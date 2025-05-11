@@ -1,18 +1,47 @@
 local love = require("love")
 local conf = require("conf")
+
 local logic = {}
+
+local uid_counter = 0
+---Generates a unique identifier
+---@return number
+local function generate_uid()
+    uid_counter = uid_counter + 1
+    return uid_counter
+end
+
+---Sets a cell on the board
+---@param state State
+---@param x number
+---@param y number
+---@param multiplier number
+local function addCell(state, x, y, multiplier)
+    local cell_uid = generate_uid()
+    state.cells[cell_uid] = { uid = cell_uid, multiplier = multiplier }
+    state.board.cell_uids[x][y] = cell_uid
+end
+
+---Sets an element on the board
+---@param state State
+---@param x number
+---@param y number
+---@param letter string
+---@param points number
+local function addElement(state, x, y, letter, points)
+    local elem_uid = generate_uid()
+    state.elements[elem_uid] = { uid = elem_uid, letter = letter, points = points }
+    state.board.elem_uids[x][y] = elem_uid
+end
 
 ---Initializes the game board by creating empty cells with multipliers
 ---@param state State
 local function initBoard(state)
     for i = 1, conf.field.size do
-        state.board.cells[i] = {}
-        state.board.elements[i] = {}
+        state.board.cell_uids[i] = {}
+        state.board.elem_uids[i] = {}
         for j = 1, conf.field.size do
-            state.board.cells[i][j] = {
-                multiplier = conf.field.multipliers[i][j]
-            }
-            state.board.elements[i][j] = nil
+            addCell(state, i, j, conf.field.multipliers[i][j])
         end
     end
 end
@@ -22,11 +51,11 @@ end
 function logic.init(state)
     initBoard(state)
 
-    state.board.elements[1][1] = { letter = "H", points = 4 }
-    state.board.elements[1][2] = { letter = "E", points = 1 }
-    state.board.elements[1][3] = { letter = "L", points = 1 }
-    state.board.elements[1][4] = { letter = "L", points = 1 }
-    state.board.elements[1][5] = { letter = "O", points = 1 }
+    addElement(state, 1, 1, "H", 4)
+    addElement(state, 1, 2, "E", 1)
+    addElement(state, 1, 3, "L", 1)
+    addElement(state, 1, 4, "L", 1)
+    addElement(state, 1, 5, "O", 1)
 end
 
 ---Handles key presses

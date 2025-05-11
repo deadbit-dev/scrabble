@@ -1,6 +1,5 @@
 local love = require("love")
 
-local log = require("log")
 local resources = require("resources")
 local state = require("state")
 local logic = require("logic")
@@ -12,6 +11,7 @@ function love.load()
     logic.init(state)
 
     hotreload.register("conf.lua")
+    hotreload.register("utils.lua")
     hotreload.register("logic.lua", function()
         logic = require("logic")
     end)
