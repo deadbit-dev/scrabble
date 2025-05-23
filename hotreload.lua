@@ -48,7 +48,9 @@ function hotreload.reloadModules()
         return false
     end
 
-    -- Clear modules
+    print("RELOADING MODULES")
+
+    -- NOTE: clear modules
     for _, file in ipairs(hotreload.files) do
         local moduleName = file.path:gsub("%.lua$", "")
         package.loaded[moduleName] = nil
@@ -66,7 +68,7 @@ function hotreload.reloadModules()
         return false
     end
 
-    -- Call reload callbacks if success
+    -- NOTE: call reload callbacks if success
     for _, file in ipairs(hotreload.files) do
         if file.callback then
             local success, err = pcall(file.callback)
@@ -84,7 +86,7 @@ function hotreload.checkFileChanges()
     local success, err = pcall(function()
         for _, file in ipairs(hotreload.files) do
             local last_modified = love.filesystem.getLastModified(file.path)
-            if last_modified > hotreload.last_error_time and last_modified > (hotreload.last_reload_time or 0) then
+            if last_modified and last_modified > hotreload.last_error_time and last_modified > (hotreload.last_reload_time or 0) then
                 log.info("File changed: " .. file.path)
                 hotreload.last_reload_time = os.time()
                 hotreload.in_error_state = false
@@ -110,24 +112,23 @@ function hotreload.update(dt)
 end
 
 ---Draws an error message overlay
----@param message string The error message to display
-function hotreload.drawErrorOverlay(message)
+function hotreload.drawErrorOverlay()
     local windowWidth = love.graphics.getWidth()
     local windowHeight = love.graphics.getHeight()
 
-    -- Draw semi-transparent background
+    -- NOTE: draw semi-transparent background
     love.graphics.setColor(0, 0, 0, 0.8)
     love.graphics.rectangle("fill", 0, 0, windowWidth, windowHeight)
 
-    -- Draw error message
+    -- NOTE: draw error message
     love.graphics.setColor(1, 0.3, 0.3, 1)
     love.graphics.setFont(resources.fonts.default)
 
-    -- Word wrap the error message
+    -- NOTE: word wrap the error message
     local font = love.graphics.getFont()
     local padding = 50
     local maxWidth = windowWidth - (padding * 2)
-    local text = message
+    local text = hotreload.error_message or "Unknown error"
     local lines = {}
     local line = ""
 
@@ -142,7 +143,7 @@ function hotreload.drawErrorOverlay(message)
     end
     table.insert(lines, line)
 
-    -- Draw each line
+    -- NOTE: draw each line
     local lineHeight = font:getHeight() * 1.2
     local totalHeight = #lines * lineHeight
     local startY = (windowHeight - totalHeight) / 2

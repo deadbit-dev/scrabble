@@ -1,6 +1,3 @@
-local love = require("love")
-local conf = require("conf")
-
 local logic = {}
 
 local uid_counter = 0
@@ -37,6 +34,7 @@ end
 ---Initializes the game board by creating empty cells with multipliers
 ---@param state State
 local function initBoard(state)
+    local conf = require("conf")
     for i = 1, conf.field.size do
         state.board.cell_uids[i] = {}
         state.board.elem_uids[i] = {}
