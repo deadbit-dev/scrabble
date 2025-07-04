@@ -45,8 +45,10 @@ local function initBoard(state)
 end
 
 ---Initializes the initial game state
----@param state State
-function logic.init(state)
+---@param game Game
+function logic.init(game)
+    local state = game.state
+
     initBoard(state)
 
     addElement(state, 1, 1, "H", 4)
@@ -57,9 +59,9 @@ function logic.init(state)
 end
 
 ---Handles key presses
----@param state State
+---@param game Game
 ---@param key string
-function logic.keypressed(state, key)
+function logic.keypressed(game, key)
     if key == "f11" then
         local fullscreen = not love.window.getFullscreen()
         love.window.setFullscreen(fullscreen, "desktop")
@@ -67,9 +69,9 @@ function logic.keypressed(state, key)
 end
 
 ---Updates the game state each frame
----@param state State
+---@param game Game
 ---@param dt number Time elapsed since the last frame in seconds
-function logic.update(state, dt)
+function logic.update(game, dt)
 end
 
 return logic

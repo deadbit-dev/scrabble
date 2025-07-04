@@ -22,6 +22,11 @@ local function isdir(path)
   return info.type == "directory"
 end
 
+local function isassetfile(path)
+  return path:match("%.png$") or path:match("%.jpg$") or path:match("%.jpeg$") or
+      path:match("%.ttf$") or path:match("%.otf$")
+end
+
 local function lastmodified(path)
   local info = love.filesystem.getInfo(path, "file")
   return info.modtime
@@ -43,6 +48,7 @@ local lovecallbacknames = {
 function lurker.init()
   lurker.print("Initing lurker")
   lurker.path = "."
+  lurker.assetspath = "assets"
   lurker.preswap = function() end
   lurker.postswap = function() end
   lurker.interval = .5
@@ -51,10 +57,12 @@ function lurker.init()
   lurker.lastscan = 0
   lurker.lasterrorfile = nil
   lurker.files = {}
+  lurker.assets = {}
   lurker.funcwrappers = {}
   lurker.lovefuncs = {}
   lurker.state = "init"
   lume.each(lurker.getchanged(), lurker.resetfile)
+  lume.each(lurker.getchangedassets(), lurker.resetasset)
   return lurker
 end
 
@@ -205,12 +213,19 @@ function lurker.getchanged()
   return lume.filter(lurker.listdir(lurker.path, true, true), fn)
 end
 
-function lurker.modname(f)
-  return (f:gsub("%.lua$", ""):gsub("[/\\]", "."))
+function lurker.getchangedassets()
+  local function fn(f)
+    return isassetfile(f) and lurker.assets[f] ~= lastmodified(f)
+  end
+  return lume.filter(lurker.listdir(lurker.assetspath, true, true), fn)
 end
 
 function lurker.resetfile(f)
   lurker.files[f] = lastmodified(f)
+end
+
+function lurker.resetasset(f)
+  lurker.assets[f] = lastmodified(f)
 end
 
 function lurker.hotswapfile(f)
@@ -224,7 +239,18 @@ function lurker.hotswapfile(f)
     return
   end
   local modname = lurker.modname(f)
-  local t, ok, err = lume.time(lume.hotswap, modname)
+  local t, ok, err = lume.time(function(modname)
+    local err = nil
+    local function onerror(e)
+      err = lume.trim(e)
+    end
+    xpcall(function()
+      package.loaded[modname] = nil
+      require(modname)
+    end, onerror)
+    if err then return nil, err end
+    return package.loaded[modname]
+  end, modname)
   if ok then
     lurker.print("Swapped '{1}' in {2} secs", { f, t })
   else
@@ -243,13 +269,38 @@ function lurker.hotswapfile(f)
   end
 end
 
+function lurker.hotswapasset(f)
+  lurker.print("Reloading asset '{1}'...", { f })
+  local resources = require("resources")
+
+  if f:match("%.ttf$") or f:match("%.otf$") then
+    local id = f:gsub("%.ttf$", ""):gsub("%.otf$", "")
+    resources.loadFont(id, f, 32)
+  elseif f:match("%.png$") or f:match("%.jpg$") or f:match("%.jpeg$") then
+    local id = f:gsub("%.png$", ""):gsub("%.jpg$", ""):gsub("%.jpeg$", "")
+    resources.loadTexture(id, f)
+  end
+
+  -- NOTE: need for update all modules which use resources, crazy but its lua bro :D
+  lurker.hotswapfile("resources.lua")
+  lurker.resetasset(f)
+end
+
 function lurker.scan()
   if lurker.state == "init" then
     lurker.exitinitstate()
   end
   local changed = lurker.getchanged()
+  local changedassets = lurker.getchangedassets()
+
   lume.each(changed, lurker.hotswapfile)
+  lume.each(changedassets, lurker.hotswapasset)
+
   return changed
+end
+
+function lurker.modname(f)
+  return (f:gsub("%.lua$", ""):gsub("[/\\]", "."))
 end
 
 return lurker.init()

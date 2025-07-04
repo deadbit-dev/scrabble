@@ -1,5 +1,5 @@
-local resources = require("resources")
-local utils = require("utils")
+local resources = import("resources")
+local utils = import("utils")
 
 local rendering = {}
 
@@ -66,9 +66,11 @@ end
 ---@param dimensions table containing board dimensions and positions
 function rendering.drawBoardBg(conf, dimensions)
     love.graphics.setColor(conf.colors.white)
-    love.graphics.draw(resources.textures.field_black, dimensions.startX, dimensions.startY, 0,
-        dimensions.boardWidth / resources.textures.field_black:getWidth(),
-        dimensions.boardHeight / resources.textures.field_black:getHeight())
+    if (resources.textures.field_black) then
+        love.graphics.draw(resources.textures.field_black, dimensions.startX, dimensions.startY, 0,
+            dimensions.boardWidth / resources.textures.field_black:getWidth(),
+            dimensions.boardHeight / resources.textures.field_black:getHeight())
+    end
 end
 
 ---Draws a single cell with its shadow and multiplier
@@ -108,7 +110,10 @@ function rendering.drawCell(conf, x, y, cellSize, cell)
 
         -- NOTE: draw multiplier number
         love.graphics.setColor(conf.text.colors.multiplier[cell.multiplier])
-        love.graphics.setFont(resources.fonts.default)
+
+        if (resources.fonts.default) then
+            love.graphics.setFont(resources.fonts.default)
+        end
 
         local font = love.graphics.getFont()
         local multiplierText = tostring(cell.multiplier)
@@ -137,11 +142,17 @@ function rendering.drawElem(conf, x, y, cellSize, element)
     if not element then return end
 
     love.graphics.setColor(conf.colors.white)
-    love.graphics.draw(resources.textures.element, x, y, 0, cellSize / resources.textures.element:getWidth(),
-        cellSize / resources.textures.element:getHeight())
+
+    if (resources.textures.element) then
+        love.graphics.draw(resources.textures.element, x, y, 0, cellSize / resources.textures.element:getWidth(),
+            cellSize / resources.textures.element:getHeight())
+    end
 
     love.graphics.setColor(conf.text.colors.element)
-    love.graphics.setFont(resources.fonts.default)
+
+    if (resources.fonts.default) then
+        love.graphics.setFont(resources.fonts.default)
+    end
 
     local font = love.graphics.getFont()
     local textWidth = font:getWidth(element.letter)
@@ -173,9 +184,11 @@ function rendering.drawElem(conf, x, y, cellSize, element)
 end
 
 ---Draws the game board and all its elements
----@param conf Config
----@param state State
-function rendering.draw(conf, state)
+---@param game Game
+function rendering.draw(game)
+    local conf = game.conf
+    local state = game.state
+
     love.graphics.clear(conf.colors.background)
 
     local dimensions = rendering.calculateBoardDimensions(conf)
