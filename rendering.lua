@@ -1,76 +1,60 @@
+local log = import("log")
 local resources = import("resources")
+local board = import("board")
 local utils = import("utils")
 
 local rendering = {}
 
----Calculates board dimensions and positions based on window size and configuration
----@param conf Config
----@return table containing all calculated dimensions and positions
-function rendering.calculateBoardDimensions(conf)
-    local windowWidth = love.graphics.getWidth()
-    local windowHeight = love.graphics.getHeight()
+---Draws the game board and all its elements
+---@param game Game
+function rendering.draw(game)
+    local conf = game.conf
+    local state = game.state
 
-    -- NOTE: Calculate the total available space for the board using percentage-based padding
-    local availableWidth = windowWidth * (1 - (conf.window.padding.left + conf.window.padding.right))
-    local availableHeight = windowHeight * (1 - (conf.window.padding.top + conf.window.padding.bottom))
+    --- IDEA: calculate dimensions and other render-dependendent params once in draw and keep them in game state, other will be it read from there
 
-    -- NOTE: Limit the board size to the maximum allowed size
-    if (conf.field.max_size.width < availableWidth) then
-        availableWidth = conf.field.max_size.width
+    love.graphics.clear(conf.colors.background)
+
+    rendering.drawBoard(conf, state)
+    rendering.drawHand(conf, state)
+    rendering.drawTransitions(conf, state)
+end
+
+function rendering.drawBoard(conf, state)
+    local dimensions = board.getBoardDimensions(conf)
+    rendering.drawBoardBg(conf, dimensions)
+
+    -- NOTE: draw cells and their contents
+    for i = 1, conf.field.size do
+        for j = 1, conf.field.size do
+            -- NOTE: calculate position with gaps
+            local pos = board.getWorldPosInBoardSpace(j, i, dimensions)
+            local x, y = pos.x, pos.y
+
+            -- TODO: if has element in this cell, then do not draw that cell
+
+            rendering.drawCell(conf, x, y, dimensions.cellSize, board.getBoardCellUID(state, i, j))
+
+            local element = board.getBoardElemUID(state, i, j)
+            if element then
+                rendering.drawElem(conf, x, y, element, dimensions.cellSize)
+            end
+        end
     end
-
-    if (conf.field.max_size.height < availableHeight) then
-        availableHeight = conf.field.max_size.height
-    end
-
-    -- NOTE: Calculate the space needed for all gaps
-    local totalCellGaps = conf.field.size - 1
-    local cellSize = math.min(
-        availableWidth /
-        (conf.field.size + (conf.field.size - 1) * conf.field.cell_gap_ratio + conf.field.gap_ratio.left + conf.field.gap_ratio.right),
-        availableHeight /
-        (conf.field.size + (conf.field.size - 1) * conf.field.cell_gap_ratio + conf.field.gap_ratio.top + conf.field.gap_ratio.bottom)
-    )
-    local cellGap = cellSize * conf.field.cell_gap_ratio
-    local fieldGaps = {
-        top = cellSize * conf.field.gap_ratio.top,
-        bottom = cellSize * conf.field.gap_ratio.bottom,
-        left = cellSize * conf.field.gap_ratio.left,
-        right = cellSize * conf.field.gap_ratio.right
-    }
-
-    local totalHorizontalGaps = (cellGap * totalCellGaps) + fieldGaps.left + fieldGaps.right
-    local totalVerticalGaps = (cellGap * totalCellGaps) + fieldGaps.top + fieldGaps.bottom
-
-    -- NOTE: Calculate total board size including gaps
-    local boardWidth = (cellSize * conf.field.size) + totalHorizontalGaps
-    local boardHeight = (cellSize * conf.field.size) + totalVerticalGaps
-
-    -- NOTE: Calculate starting position to center the board
-    local startX = (windowWidth / 2) - (boardWidth / 2)
-    local startY = (windowHeight / 2) - (boardHeight / 2)
-
-    return {
-        cellSize = cellSize,
-        cellGap = cellGap,
-        fieldGaps = fieldGaps,
-        boardWidth = boardWidth,
-        boardHeight = boardHeight,
-        startX = startX,
-        startY = startY
-    }
 end
 
 ---Draws the board background
 ---@param conf Config
 ---@param dimensions table containing board dimensions and positions
 function rendering.drawBoardBg(conf, dimensions)
-    love.graphics.setColor(conf.colors.white)
-    if (resources.textures.field_black) then
-        love.graphics.draw(resources.textures.field_black, dimensions.startX, dimensions.startY, 0,
-            dimensions.boardWidth / resources.textures.field_black:getWidth(),
-            dimensions.boardHeight / resources.textures.field_black:getHeight())
+    if (not resources.textures.field) then
+        return
     end
+
+    love.graphics.setColor(conf.colors.black)
+    love.graphics.draw(resources.textures.field, dimensions.startX, dimensions.startY, 0,
+        dimensions.boardWidth / resources.textures.field:getWidth(),
+        dimensions.boardHeight / resources.textures.field:getHeight())
 end
 
 ---Draws a single cell with its shadow and multiplier
@@ -132,24 +116,37 @@ function rendering.drawCell(conf, x, y, cellSize, cell)
     end
 end
 
----Draws a game element (letter and points)
+---Draws a game element
 ---@param conf Config
----@param x number X position of the cell
----@param y number Y position of the cell
----@param cellSize number Size of the cell
+---@param x number X position of the element
+---@param y number Y position of the element
 ---@param element table Element data containing letter and points
-function rendering.drawElem(conf, x, y, cellSize, element)
+---@param scale number Scale factor for the element
+function rendering.drawElem(conf, x, y, element, scale)
     if not element then return end
 
-    love.graphics.setColor(conf.colors.white)
+    -- NOTE: Calculate element dimensions based on scale
+    local elementSize = scale
+    local texture_scaleX = 1
+    local texture_scaleY = 1
+    local elementWidth = elementSize
+    local elementHeight = elementSize
 
-    if (resources.textures.element) then
-        love.graphics.draw(resources.textures.element, x, y, 0, cellSize / resources.textures.element:getWidth(),
-            cellSize / resources.textures.element:getHeight())
+    if resources.textures.element then
+        texture_scaleX = elementSize / resources.textures.element:getWidth()
+        texture_scaleY = elementSize / resources.textures.element:getHeight()
+        elementWidth = resources.textures.element:getWidth() * texture_scaleX
+        elementHeight = resources.textures.element:getHeight() * texture_scaleY
     end
 
-    love.graphics.setColor(conf.text.colors.element)
+    -- NOTE: Draw element texture
+    love.graphics.setColor(conf.colors.white)
+    if (resources.textures.element) then
+        love.graphics.draw(resources.textures.element, x, y, 0, texture_scaleX, texture_scaleY)
+    end
 
+    -- NOTE: Setup font for text rendering
+    love.graphics.setColor(conf.text.colors.element)
     if (resources.fonts.default) then
         love.graphics.setFont(resources.fonts.default)
     end
@@ -158,54 +155,100 @@ function rendering.drawElem(conf, x, y, cellSize, element)
     local textWidth = font:getWidth(element.letter)
     local textHeight = font:getHeight()
 
-    -- NOTE: calculate scale based on cell size
-    local letter_scale = (cellSize * conf.text.letter_scale_factor) / textHeight
-    local point_scale = letter_scale * conf.text.point_scale_factor
+    -- NOTE: Calculate letter scale and position
+    local letter_scale = (elementWidth * conf.text.screen.letter_scale_factor) / textHeight
+    local letter_scaledX = ((elementWidth - textWidth * letter_scale) / 2 - elementWidth * conf.text.screen.offset) /
+        letter_scale
+    local letter_scaledY = ((elementHeight - textHeight * letter_scale) / 2 - elementHeight * conf.text.screen.offset) /
+        letter_scale
 
-    -- NOTE: draw letter
+    -- NOTE: Draw letter
     love.graphics.push()
     love.graphics.scale(letter_scale)
-    local scaledX = (x + (cellSize - textWidth * letter_scale) / 2 - cellSize * conf.text.offset) / letter_scale
-    local scaledY = (y + (cellSize - textHeight * letter_scale) / 2 - cellSize * conf.text.offset) / letter_scale
-    love.graphics.print(element.letter, scaledX, scaledY)
+    love.graphics.print(element.letter, x / letter_scale + letter_scaledX, y / letter_scale + letter_scaledY)
     love.graphics.pop()
 
-    -- NOTE: draw points
+    -- NOTE: Calculate points scale and position
+    local point_scale = letter_scale * conf.text.screen.point_scale_factor
     local pointsText = tostring(element.points)
     local pointsWidth = font:getWidth(pointsText)
     local pointsHeight = font:getHeight()
+    local points_scaledX = (elementWidth - pointsWidth * point_scale - elementWidth * conf.text.screen.offset) /
+        point_scale
+    local points_scaledY = (elementHeight - pointsHeight * point_scale - elementHeight * conf.text.screen.offset) /
+        point_scale
 
+    -- NOTE: Draw points
     love.graphics.push()
     love.graphics.scale(point_scale)
-    local scaledPointsX = (x + cellSize - pointsWidth * point_scale - cellSize * conf.text.offset) / point_scale
-    local scaledPointsY = (y + cellSize - pointsHeight * point_scale - cellSize * conf.text.offset) / point_scale
-    love.graphics.print(pointsText, scaledPointsX, scaledPointsY)
+    love.graphics.print(element.points, x / point_scale + points_scaledX, y / point_scale + points_scaledY)
     love.graphics.pop()
 end
 
----Draws the game board and all its elements
----@param game Game
-function rendering.draw(game)
-    local conf = game.conf
-    local state = game.state
+---@param conf Config
+---@param state State
+function rendering.drawHand(conf, state)
+    local dimensions = utils.getHandDimensions(conf)
+    rendering.drawHandBg(conf, dimensions)
+    local hand = state.hands[state.players[state.current_player_uid].hand_uid]
 
-    love.graphics.clear(conf.colors.background)
+    if #hand.elem_uids == 0 then return end
 
-    local dimensions = rendering.calculateBoardDimensions(conf)
-    rendering.drawBoardBg(conf, dimensions)
+    -- NOTE: Calculate element size based on hand dimensions (adaptive)
+    local elementSize = math.min(dimensions.width, dimensions.height) * 0.5 -- 50% of smaller dimension
+    local adaptiveSpacing = elementSize * conf.hand.element_spacing_ratio
+    local totalWidth = #hand.elem_uids * elementSize + (#hand.elem_uids - 1) * adaptiveSpacing
 
-    -- NOTE: draw cells and their contents
-    for i = 1, conf.field.size do
-        for j = 1, conf.field.size do
-            -- NOTE: calculate position with gaps
-            local x = dimensions.startX + dimensions.fieldGaps.left +
-                (j - 1) * (dimensions.cellSize + dimensions.cellGap)
-            local y = dimensions.startY + dimensions.fieldGaps.top + (i - 1) * (dimensions.cellSize + dimensions.cellGap)
+    -- NOTE: Apply internal margin from hand background
+    local availableWidth = dimensions.width
+    local availableHeight = dimensions.height
 
-            rendering.drawCell(conf, x, y, dimensions.cellSize, utils.getBoardCell(state, i, j))
-            rendering.drawElem(conf, x, y, dimensions.cellSize, utils.getBoardElem(state, i, j))
-        end
+    -- NOTE: Calculate starting position to center all elements within available hand area
+    local startX = dimensions.x + (availableWidth - totalWidth) / 2
+    local centerY = dimensions.y + availableHeight / 2
+
+    for i, elem_uid in ipairs(hand.elem_uids) do
+        local element = board.getElem(state, elem_uid)
+
+        -- NOTE: Calculate position for each element
+        local x = startX + (i - 1) * (elementSize + adaptiveSpacing)
+        local y = centerY - elementSize / 2
+
+        rendering.drawElem(conf, x, y, element, elementSize)
     end
+end
+
+function rendering.drawHandBg(conf, dimensions)
+    if (not resources.textures.hand) then
+        return
+    end
+
+    love.graphics.setColor(conf.colors.black)
+    love.graphics.draw(resources.textures.hand, dimensions.x, dimensions.y, 0,
+        dimensions.width / resources.textures.hand:getWidth(),
+        dimensions.height / resources.textures.hand:getHeight())
+end
+
+---Draws all transitions
+---@param conf Config
+---@param state State
+function rendering.drawTransitions(conf, state)
+    for _, transition in ipairs(state.transitions) do
+        rendering.drawTransition(conf, state, transition)
+    end
+end
+
+---Draws a transition
+---@param conf Config
+---@param state State
+---@param transition Transition
+function rendering.drawTransition(conf, state, transition)
+    local element = board.getElem(state, transition.uid)
+    local transform = transition.tween.subject
+    local position = transform.position
+    local scale = transform.scale
+
+    rendering.drawElem(conf, position.x, position.y, element, scale)
 end
 
 return rendering

@@ -1,4 +1,5 @@
 -- TODO: implement color themes / reorganization for colors of objects
+-- TODO: refactoring - separate config by entity, for example, elements, cells, etc.
 
 ---@class WindowConfig
 ---@field padding { top: number, bottom: number, left: number, right: number }
@@ -20,12 +21,20 @@
 ---@field point_scale_factor number Scale factor for point numbers relative to letter scale
 ---@field offset number Text positioning offset as fraction of cell size
 ---@field colors { element: number[], multiplier: table<number, number[]> } Colors for text elements
+---@field screen { base_size: number, letter_scale_factor: number, point_scale_factor: number, offset: number, min_size: number, max_size: number } Screen text configuration settings
+
+---@class HandConfig
+---@field offset_from_center_percent number Offset from center of screen as percentage of screen height
+---@field width_ratio number Width as ratio of screen width
+---@field height_ratio number Height as ratio of screen height
+---@field element_spacing_ratio number Spacing as ratio of element size
 
 ---@class Config
 ---@field window WindowConfig Window configuration settings
 ---@field colors Colors Color definitions
 ---@field field FieldConfig Field/board configuration settings
 ---@field text TextConfig Text configuration settings
+---@field hand HandConfig Hand configuration settings
 
 local conf = {}
 
@@ -42,6 +51,7 @@ conf.window = {
 conf.colors = {
     white = { 1, 1, 1 },
     background = { 0.92, 0.87, 0.96 },
+    black = { 0.27, 0.27, 0.27 }
 }
 -- NOTE: field settings
 conf.field = {
@@ -77,7 +87,7 @@ conf.field = {
     cell_colors = {
         shadow = { 0.16, 0.16, 0.16 }, -- NOTE: #292929
         multiplier = {
-            [1] = { 1, 0.92, 0.92 },   -- NOTE: #FFEBEB
+            [1] = { 0.9, 0.82, 0.82 }, -- NOTE: #E6D1D1
             [2] = { 1, 0.78, 0.72 },   -- NOTE: #FFC8B8
             [3] = { 0.4, 0.37, 0.4 },  -- NOTE: #675F69
         }
@@ -85,7 +95,7 @@ conf.field = {
 }
 
 -- NOTE: elements settings
--- IDEA: maybe later will be bater geneate points for each language depends of world list
+-- IDEA: maybe later will be better geneate points for each language depends of world list
 conf.elements = {
     english = {
         { letter = "A", count = 9,  points = 1 },
@@ -164,7 +174,28 @@ conf.text = {
             [2] = { 0.25, 0.25, 0.25 }, -- NOTE: #404040
             [3] = { 1, 0.78, 0.72 },    -- NOTE: #D2D2D2
         },
+    },
+    -- NOTE: screen element settings (for elements not on the board)
+    screen = {
+        base_size = 80,            -- NOTE: Base size in pixels for screen elements
+        letter_scale_factor = 0.6, -- NOTE: Letter scale relative to element size
+        point_scale_factor = 0.7,  -- NOTE: Points scale relative to letter scale
+        offset = 0.15,             -- NOTE: Text offset from element edges
+        min_size = 60,             -- NOTE: Minimum element size in pixels
+        max_size = 120             -- NOTE: Maximum element size in pixels
     }
+}
+
+-- NOTE: hand settings
+conf.hand = {
+    offset_from_center_percent = 0.65,  -- NOTE: Offset from center of screen as percentage of screen
+    width_ratio = 0.8,                  -- NOTE: Width as ratio of screen width
+    height_ratio = 0.15,                -- NOTE: Height as ratio of screen height
+    element_spacing_ratio = 0.12,       -- NOTE: Spacing as ratio of element size
+    min_height = 60,                    -- NOTE: Minimum height for hand in pixels
+    min_offset_from_bottom_screen = 10, -- NOTE: Minimum margin from screen edge in pixels
+    available_width_ratio = 0.9,        -- NOTE: Available width ratio for elements within hand
+    available_height_ratio = 0.8        -- NOTE: Available height ratio for elements within hand
 }
 
 function love.conf(t)

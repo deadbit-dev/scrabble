@@ -17,7 +17,7 @@
 
 ---@class Player
 ---@field uid number
----@field hand Hand
+---@field hand_uid number
 ---@field points number
 
 ---@alias SpaceType
@@ -25,28 +25,21 @@
 ---| "board"
 ---| "screen"
 
----@class IndexData
----@field index number
-
 ---@class XYData
 ---@field x number
 ---@field y number
 
----@class FromInfo
----@field type SpaceType
----@field data IndexData|XYData
+---@class SlotData
+---@field index number
 
----@class ToInfo
+---@class SpaceInfo
 ---@field type SpaceType
----@field data IndexData|XYData
+---@field data XYData|SlotData
 
 ---@class Transition
----@field elem_uid number
----@field from FromInfo
----@field to ToInfo
----@field progress number
----@field duration number
----@field easing string
+---@field uid number
+---@field tween table
+---@field onComplete function|nil
 
 ---@class DragState
 ---@field uid number
@@ -64,6 +57,9 @@
 ---@field players {[number]: Player}
 ---@field transitions Transition[]
 ---@field drag DragState|nil
+---@field timers table[]
+---@field current_player_uid number|nil
+
 local state = {
     cells = {},
     elements = {},
@@ -75,7 +71,9 @@ local state = {
     hands = {},
     players = {},
     transitions = {},
-    drag = nil
+    drag = nil,
+    timers = {},
+    current_player_uid = nil
 }
 
 return state
