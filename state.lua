@@ -30,6 +30,7 @@
 ---@field y number
 
 ---@class SlotData
+---@field hand_uid number
 ---@field index number
 
 ---@class SpaceInfo

@@ -62,6 +62,7 @@ conf.field = {
         left = 0.4,
         right = 0.4
     },
+    -- TODO: will be better to calculate max size based on window size
     max_size = {
         width = 600,
         height = 600
@@ -94,75 +95,6 @@ conf.field = {
     }
 }
 
--- NOTE: elements settings
--- IDEA: maybe later will be better geneate points for each language depends of world list
-conf.elements = {
-    english = {
-        { letter = "A", count = 9,  points = 1 },
-        { letter = "B", count = 2,  points = 3 },
-        { letter = "C", count = 2,  points = 3 },
-        { letter = "D", count = 4,  points = 2 },
-        { letter = "E", count = 12, points = 1 },
-        { letter = "F", count = 2,  points = 4 },
-        { letter = "G", count = 3,  points = 2 },
-        { letter = "H", count = 2,  points = 4 },
-        { letter = "I", count = 9,  points = 1 },
-        { letter = "J", count = 1,  points = 8 },
-        { letter = "K", count = 1,  points = 5 },
-        { letter = "L", count = 4,  points = 1 },
-        { letter = "M", count = 2,  points = 3 },
-        { letter = "N", count = 6,  points = 1 },
-        { letter = "O", count = 8,  points = 1 },
-        { letter = "P", count = 2,  points = 3 },
-        { letter = "Q", count = 1,  points = 10 },
-        { letter = "R", count = 6,  points = 1 },
-        { letter = "S", count = 4,  points = 1 },
-        { letter = "T", count = 6,  points = 1 },
-        { letter = "U", count = 4,  points = 1 },
-        { letter = "V", count = 2,  points = 4 },
-        { letter = "W", count = 2,  points = 4 },
-        { letter = "X", count = 1,  points = 8 },
-        { letter = "Y", count = 2,  points = 4 },
-        { letter = "Z", count = 1,  points = 10 },
-        { letter = "*", count = 2,  points = 0 }
-    },
-    russian = {
-        { letter = "А", count = 8, points = 1 },
-        { letter = "Б", count = 3, points = 3 },
-        { letter = "В", count = 8, points = 1 },
-        { letter = "Г", count = 3, points = 3 },
-        { letter = "Д", count = 4, points = 2 },
-        { letter = "Е", count = 8, points = 1 },
-        { letter = "Ж", count = 1, points = 5 },
-        { letter = "З", count = 1, points = 5 },
-        { letter = "И", count = 8, points = 1 },
-        { letter = "Й", count = 2, points = 4 },
-        { letter = "К", count = 4, points = 2 },
-        { letter = "Л", count = 4, points = 2 },
-        { letter = "М", count = 4, points = 2 },
-        { letter = "Н", count = 8, points = 1 },
-        { letter = "О", count = 8, points = 1 },
-        { letter = "П", count = 4, points = 2 },
-        { letter = "Р", count = 8, points = 1 },
-        { letter = "С", count = 8, points = 1 },
-        { letter = "Т", count = 8, points = 1 },
-        { letter = "У", count = 4, points = 3 },
-        { letter = "Ф", count = 1, points = 8 },
-        { letter = "Х", count = 1, points = 5 },
-        { letter = "Ц", count = 1, points = 5 },
-        { letter = "Ч", count = 1, points = 5 },
-        { letter = "Ш", count = 1, points = 8 },
-        { letter = "Щ", count = 1, points = 10 },
-        { letter = "Ъ", count = 1, points = 10 },
-        { letter = "Ы", count = 2, points = 4 },
-        { letter = "Ь", count = 3, points = 3 },
-        { letter = "Э", count = 1, points = 8 },
-        { letter = "Ю", count = 1, points = 8 },
-        { letter = "Я", count = 3, points = 3 },
-        { letter = "*", count = 2, points = 0 }
-    }
-}
-
 -- NOTE: text settings
 conf.text = {
     letter_scale_factor = 0.7,          -- NOTE: Letter scale relative to cell size
@@ -175,12 +107,16 @@ conf.text = {
             [3] = { 1, 0.78, 0.72 },    -- NOTE: #D2D2D2
         },
     },
+
+    element_padding = 0.15,            -- NOTE: Text offset from element edges
+
+    letter_scale_factor = 0.7, -- NOTE: Letter scale relative to element size
+    point_scale_factor = 0.7,  -- NOTE: Points scale relative to letter scale
+
     -- NOTE: screen element settings (for elements not on the board)
+    -- TODO: will be better to calculate min/max size based on window size
     screen = {
         base_size = 80,            -- NOTE: Base size in pixels for screen elements
-        letter_scale_factor = 0.6, -- NOTE: Letter scale relative to element size
-        point_scale_factor = 0.7,  -- NOTE: Points scale relative to letter scale
-        offset = 0.15,             -- NOTE: Text offset from element edges
         min_size = 60,             -- NOTE: Minimum element size in pixels
         max_size = 120             -- NOTE: Maximum element size in pixels
     }
@@ -188,14 +124,83 @@ conf.text = {
 
 -- NOTE: hand settings
 conf.hand = {
-    offset_from_center_percent = 0.65,  -- NOTE: Offset from center of screen as percentage of screen
     width_ratio = 0.8,                  -- NOTE: Width as ratio of screen width
     height_ratio = 0.15,                -- NOTE: Height as ratio of screen height
+    offset_from_center_percent = 1.2,   -- NOTE: Offset from center of screen as percentage of screen
+    min_offset_from_bottom_screen_percent = 0.01, -- NOTE: Minimum margin from screen edge in pixels
+    min_height = 60,                    -- NOTE: Minimum height for hand in pixels (based on window size) (TODO: will be better to calculate min height based on window size)
     element_spacing_ratio = 0.12,       -- NOTE: Spacing as ratio of element size
-    min_height = 60,                    -- NOTE: Minimum height for hand in pixels
-    min_offset_from_bottom_screen = 10, -- NOTE: Minimum margin from screen edge in pixels
     available_width_ratio = 0.9,        -- NOTE: Available width ratio for elements within hand
     available_height_ratio = 0.8        -- NOTE: Available height ratio for elements within hand
+}
+
+-- NOTE: elements settings
+-- IDEA: maybe later will be better geneate points for each language depends of world list
+conf.elements = {
+    english = {
+        ["A"] = { count = 9,  points = 1 },
+        ["B"] = { count = 2,  points = 3 },
+        ["C"] = { count = 2,  points = 3 },
+        ["D"] = { count = 4,  points = 2 },
+        ["E"] = { count = 12, points = 1 },
+        ["F"] = { count = 2,  points = 4 },
+        ["G"] = { count = 3,  points = 2 },
+        ["H"] = { count = 2,  points = 4 },
+        ["I"] = { count = 9,  points = 1 },
+        ["J"] = { count = 1,  points = 8 },
+        ["K"] = { count = 1,  points = 5 },
+        ["L"] = { count = 4,  points = 1 },
+        ["M"] = { count = 2,  points = 3 },
+        ["N"] = { count = 6,  points = 1 },
+        ["O"] = { count = 8,  points = 1 },
+        ["P"] = { count = 2,  points = 3 },
+        ["Q"] = { count = 1,  points = 10 },
+        ["R"] = { count = 6,  points = 1 },
+        ["S"] = { count = 4,  points = 1 },
+        ["T"] = { count = 6,  points = 1 },
+        ["U"] = { count = 4,  points = 1 },
+        ["V"] = { count = 2,  points = 4 },
+        ["W"] = { count = 2,  points = 4 },
+        ["X"] = { count = 1,  points = 8 },
+        ["Y"] = { count = 2,  points = 4 },
+        ["Z"] = { count = 1,  points = 10 },
+        ["*"] = { count = 2,  points = 0 }
+    },
+    russian = {
+        ["А"] = { count = 8, points = 1 },
+        ["Б"] = { count = 3, points = 3 },
+        ["В"] = { count = 8, points = 1 },
+        ["Г"] = { count = 3, points = 3 },
+        ["Д"] = { count = 4, points = 2 },
+        ["Е"] = { count = 8, points = 1 },
+        ["Ж"] = { count = 1, points = 5 },
+        ["З"] = { count = 1, points = 5 },
+        ["И"] = { count = 8, points = 1 },
+        ["Й"] = { count = 2, points = 4 },
+        ["К"] = { count = 4, points = 2 },
+        ["Л"] = { count = 4, points = 2 },
+        ["М"] = { count = 4, points = 2 },
+        ["Н"] = { count = 8, points = 1 },
+        ["О"] = { count = 8, points = 1 },
+        ["П"] = { count = 4, points = 2 },
+        ["Р"] = { count = 8, points = 1 },
+        ["С"] = { count = 8, points = 1 },
+        ["Т"] = { count = 8, points = 1 },
+        ["У"] = { count = 4, points = 3 },
+        ["Ф"] = { count = 1, points = 8 },
+        ["Х"] = { count = 1, points = 5 },
+        ["Ц"] = { count = 1, points = 5 },
+        ["Ч"] = { count = 1, points = 5 },
+        ["Ш"] = { count = 1, points = 8 },
+        ["Щ"] = { count = 1, points = 10 },
+        ["Ъ"] = { count = 1, points = 10 },
+        ["Ы"] = { count = 2, points = 4 },
+        ["Ь"] = { count = 3, points = 3 },
+        ["Э"] = { count = 1, points = 8 },
+        ["Ю"] = { count = 1, points = 8 },
+        ["Я"] = { count = 3, points = 3 },
+        ["*"] = { count = 2, points = 0 }
+    }
 }
 
 function love.conf(t)

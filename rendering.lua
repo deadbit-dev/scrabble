@@ -1,7 +1,7 @@
 local log = import("log")
 local resources = import("resources")
 local board = import("board")
-local utils = import("utils")
+local hand = import("hand")
 
 local rendering = {}
 
@@ -21,14 +21,14 @@ function rendering.draw(game)
 end
 
 function rendering.drawBoard(conf, state)
-    local dimensions = board.getBoardDimensions(conf)
+    local dimensions = board.getDimensions(conf)
     rendering.drawBoardBg(conf, dimensions)
 
     -- NOTE: draw cells and their contents
     for i = 1, conf.field.size do
         for j = 1, conf.field.size do
             -- NOTE: calculate position with gaps
-            local pos = board.getWorldPosInBoardSpace(j, i, dimensions)
+            local pos = board.getWorldPosInBoardSpace(conf, j, i)
             local x, y = pos.x, pos.y
 
             -- TODO: if has element in this cell, then do not draw that cell
@@ -156,10 +156,10 @@ function rendering.drawElem(conf, x, y, element, scale)
     local textHeight = font:getHeight()
 
     -- NOTE: Calculate letter scale and position
-    local letter_scale = (elementWidth * conf.text.screen.letter_scale_factor) / textHeight
-    local letter_scaledX = ((elementWidth - textWidth * letter_scale) / 2 - elementWidth * conf.text.screen.offset) /
+    local letter_scale = (elementWidth * conf.text.letter_scale_factor) / textHeight
+    local letter_scaledX = ((elementWidth - textWidth * letter_scale) / 2 - elementWidth * conf.text.element_padding) /
         letter_scale
-    local letter_scaledY = ((elementHeight - textHeight * letter_scale) / 2 - elementHeight * conf.text.screen.offset) /
+    local letter_scaledY = ((elementHeight - textHeight * letter_scale) / 2 - elementHeight * conf.text.element_padding) /
         letter_scale
 
     -- NOTE: Draw letter
@@ -169,13 +169,13 @@ function rendering.drawElem(conf, x, y, element, scale)
     love.graphics.pop()
 
     -- NOTE: Calculate points scale and position
-    local point_scale = letter_scale * conf.text.screen.point_scale_factor
+    local point_scale = letter_scale * conf.text.point_scale_factor
     local pointsText = tostring(element.points)
     local pointsWidth = font:getWidth(pointsText)
     local pointsHeight = font:getHeight()
-    local points_scaledX = (elementWidth - pointsWidth * point_scale - elementWidth * conf.text.screen.offset) /
+    local points_scaledX = (elementWidth - pointsWidth * point_scale - elementWidth * conf.text.element_padding) /
         point_scale
-    local points_scaledY = (elementHeight - pointsHeight * point_scale - elementHeight * conf.text.screen.offset) /
+    local points_scaledY = (elementHeight - pointsHeight * point_scale - elementHeight * conf.text.element_padding) /
         point_scale
 
     -- NOTE: Draw points
@@ -188,33 +188,22 @@ end
 ---@param conf Config
 ---@param state State
 function rendering.drawHand(conf, state)
-    local dimensions = utils.getHandDimensions(conf)
+    local dimensions = hand.getDimensions(conf)
     rendering.drawHandBg(conf, dimensions)
-    local hand = state.hands[state.players[state.current_player_uid].hand_uid]
+    local currentHand = state.hands[state.players[state.current_player_uid].hand_uid]
 
-    if #hand.elem_uids == 0 then return end
+    if #currentHand.elem_uids == 0 then return end
 
     -- NOTE: Calculate element size based on hand dimensions (adaptive)
     local elementSize = math.min(dimensions.width, dimensions.height) * 0.5 -- 50% of smaller dimension
-    local adaptiveSpacing = elementSize * conf.hand.element_spacing_ratio
-    local totalWidth = #hand.elem_uids * elementSize + (#hand.elem_uids - 1) * adaptiveSpacing
 
-    -- NOTE: Apply internal margin from hand background
-    local availableWidth = dimensions.width
-    local availableHeight = dimensions.height
-
-    -- NOTE: Calculate starting position to center all elements within available hand area
-    local startX = dimensions.x + (availableWidth - totalWidth) / 2
-    local centerY = dimensions.y + availableHeight / 2
-
-    for i, elem_uid in ipairs(hand.elem_uids) do
-        local element = board.getElem(state, elem_uid)
-
-        -- NOTE: Calculate position for each element
-        local x = startX + (i - 1) * (elementSize + adaptiveSpacing)
-        local y = centerY - elementSize / 2
-
-        rendering.drawElem(conf, x, y, element, elementSize)
+    for i, elem_uid in ipairs(currentHand.elem_uids) do
+        local element = getElem(state, elem_uid)
+        
+        -- NOTE: Use the corrected hand positioning function
+        local pos = hand.getWorldPosInHandSpace(conf, state, state.players[state.current_player_uid].hand_uid, i)
+        
+        rendering.drawElem(conf, pos.x, pos.y, element, elementSize)
     end
 end
 
@@ -243,7 +232,7 @@ end
 ---@param state State
 ---@param transition Transition
 function rendering.drawTransition(conf, state, transition)
-    local element = board.getElem(state, transition.uid)
+    local element = getElem(state, transition.uid)
     local transform = transition.tween.subject
     local position = transform.position
     local scale = transform.scale
