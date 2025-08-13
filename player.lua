@@ -1,4 +1,5 @@
 local hand = import("hand")
+local element = import("element")
 
 local player = {}
 
@@ -9,11 +10,11 @@ function player.init(state)
     state.current_player_uid = player_uid
 
     -- NOTE: for test
-    table.insert(state.hands[hand_uid].elem_uids, createElement(state, "A", 1))
-    table.insert(state.hands[hand_uid].elem_uids, createElement(state, "B", 2))
-    table.insert(state.hands[hand_uid].elem_uids, createElement(state, "C", 3))
-    table.insert(state.hands[hand_uid].elem_uids, createElement(state, "D", 4))
-    table.insert(state.hands[hand_uid].elem_uids, createElement(state, "E", 5))
+    hand.addElem(state, hand_uid, 1, element.create(state, "A", 1))
+    hand.addElem(state, hand_uid, 2, element.create(state, "B", 2))
+    hand.addElem(state, hand_uid, 3, element.create(state, "C", 3))
+    hand.addElem(state, hand_uid, 4, element.create(state, "D", 4))
+    hand.addElem(state, hand_uid, 5, element.create(state, "E", 5))
 end
 
 return player

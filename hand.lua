@@ -1,5 +1,6 @@
 local utils = import("utils")
 local resources = import("resources")
+local element = import("element")
 
 local hand = {}
 
@@ -119,6 +120,36 @@ function hand.getDimensions(conf)
         width = scaledWidth,
         height = scaledHeight
     }
+end
+
+local function drawBg(conf, dimensions)
+    if (not resources.textures.hand) then
+        return
+    end
+
+    love.graphics.setColor(conf.colors.black)
+    love.graphics.draw(resources.textures.hand, dimensions.x, dimensions.y, 0,
+        dimensions.width / resources.textures.hand:getWidth(),
+        dimensions.height / resources.textures.hand:getHeight())
+end
+
+---@param conf Config
+---@param state State
+function hand.draw(conf, state)
+    local dimensions = hand.getDimensions(conf)
+    drawBg(conf, dimensions)
+    local currentHand = state.hands[state.players[state.current_player_uid].hand_uid]
+
+    if #currentHand.elem_uids == 0 then return end
+
+    -- NOTE: Calculate element size based on hand dimensions (adaptive)
+    local elementSize = math.min(dimensions.width, dimensions.height) * 0.5 -- 50% of smaller dimension
+
+    for i, elem_uid in ipairs(currentHand.elem_uids) do
+        -- NOTE: Use the corrected hand positioning function
+        local pos = hand.getWorldPosInHandSpace(conf, state, state.players[state.current_player_uid].hand_uid, i)
+        element.draw(conf, pos.x, pos.y, element.get(state, elem_uid), elementSize)
+    end
 end
 
 return hand

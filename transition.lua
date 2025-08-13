@@ -2,6 +2,8 @@ local resources = import("resources")
 local tween = import("tween")
 local board = import("board")
 local hand = import("hand")
+local element = import("element")
+local timer = import("timer")
 
 local transition = {}
 
@@ -15,7 +17,7 @@ local transition = {}
 ---@param onComplete function|nil
 ---@return number
 function transition.create(conf, state, elem_uid, duration, easing, from, to, onComplete)
-    local element = getElem(state, elem_uid)
+    local element = element.get(state, elem_uid)
     table.insert(state.transitions, {
         uid = elem_uid,
         tween = tween.new(
@@ -49,6 +51,18 @@ function transition.update(state, dt)
             end
         end
     end
+end
+
+---@param conf Config
+---@param state State
+---@param transition Transition
+function transition.draw(conf, state, transition)
+    local elem = element.get(state, transition.uid)
+    local transform = transition.tween.subject
+    local position = transform.position
+    local scale = transform.scale
+
+    element.draw(conf, position.x, position.y, elem, scale)
 end
 
 ---Calculates world transform from space info
@@ -126,6 +140,18 @@ function transition.handToBoard(game, hand_uid, fromIndex, toX, toY, onComplete)
         },
         onComplete
     )
+end
+
+function testTransition(game)
+    local elem_uid = element.create(game.state, "A", 1)
+    local hand_uid = game.state.players[game.state.current_player_uid].hand_uid
+    transition.poolToHand(game, elem_uid, hand_uid, 1, function()
+        timer.delay(game.state, 0.25, function()
+            transition.handToBoard(game, hand_uid, 1, 1, 15, function()
+                element.remove(game.state, elem_uid)
+            end)
+        end)
+    end)
 end
 
 return transition

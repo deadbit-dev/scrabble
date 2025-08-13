@@ -1,5 +1,6 @@
 local tween = import("tween")
 local board = import("board")
+local element = import("element")
 local transition = import("transition")
 local player = import("player")
 local timer = import("timer")
@@ -17,16 +18,16 @@ function logic.init(game)
     board.init(conf, state)
     player.init(state)
 
-    board.addElement(state, 2, 1, createElement(state, "H", conf.elements.english["H"].points))
-    board.addElement(state, 2, 2, createElement(state, "E", conf.elements.english["E"].points))
-    board.addElement(state, 2, 3, createElement(state, "L", conf.elements.english["L"].points))
-    board.addElement(state, 2, 4, createElement(state, "L", conf.elements.english["L"].points))
-    board.addElement(state, 2, 5, createElement(state, "O", conf.elements.english["O"].points))
+    board.addElement(state, 2, 1, element.create(state, "H", conf.elements.english["H"].points))
+    board.addElement(state, 2, 2, element.create(state, "E", conf.elements.english["E"].points))
+    board.addElement(state, 2, 3, element.create(state, "L", conf.elements.english["L"].points))
+    board.addElement(state, 2, 4, element.create(state, "L", conf.elements.english["L"].points))
+    board.addElement(state, 2, 5, element.create(state, "O", conf.elements.english["O"].points))
     
-    board.addElement(state, 1, 5, createElement(state, "W", conf.elements.english["W"].points))
-    board.addElement(state, 3, 5, createElement(state, "R", conf.elements.english["R"].points))
-    board.addElement(state, 4, 5, createElement(state, "L", conf.elements.english["L"].points))
-    board.addElement(state, 5, 5, createElement(state, "D", conf.elements.english["D"].points))
+    board.addElement(state, 1, 5, element.create(state, "W", conf.elements.english["W"].points))
+    board.addElement(state, 3, 5, element.create(state, "R", conf.elements.english["R"].points))
+    board.addElement(state, 4, 5, element.create(state, "L", conf.elements.english["L"].points))
+    board.addElement(state, 5, 5, element.create(state, "D", conf.elements.english["D"].points))
 end
 
 function logic.restart(game)
@@ -60,16 +61,6 @@ function logic.update(game, dt)
     transition.update(game.state, dt)
 end
 
-function testTransition(game)
-    local elem_uid = createElement(game.state, "A", 1)
-    local hand_uid = game.state.players[game.state.current_player_uid].hand_uid
-    transition.poolToHand(game, elem_uid, hand_uid, 1, function()
-        timer.delay(game.state, 0.25, function()
-            transition.handToBoard(game, hand_uid, 1, 1, 15, function()
-                removeElement(game.state, elem_uid)
-            end)
-        end)
-    end)
-end
+
 
 return logic

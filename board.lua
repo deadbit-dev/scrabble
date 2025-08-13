@@ -1,15 +1,15 @@
 local resources = import("resources")
+local cell = import("cell")
+local element = import("element")
 
 local board = {}
-
-
 
 ---@param state State
 ---@param x number
 ---@param y number
 ---@return Cell
 function board.getBoardCellUID(state, x, y)
-    return getCell(state, state.board.cell_uids[x][y])
+    return cell.get(state, state.board.cell_uids[x][y])
 end
 
 ---Sets a cell on the board
@@ -26,7 +26,7 @@ end
 ---@param y number
 ---@return Element
 function board.getBoardElemUID(state, x, y)
-    return getElem(state, state.board.elem_uids[x][y])
+    return element.get(state, state.board.elem_uids[x][y])
 end
 
 
@@ -47,7 +47,7 @@ function board.init(conf, state)
         state.board.cell_uids[i] = {}
         state.board.elem_uids[i] = {}
         for j = 1, conf.field.size do
-            board.addCell(state, i, j, createCell(state, conf.field.multipliers[i][j]))
+            board.addCell(state, i, j, cell.create(state, conf.field.multipliers[i][j]))
         end
     end
 end
@@ -108,6 +108,43 @@ function board.getDimensions(conf)
         startX = startX,
         startY = startY
     }
+end
+
+---Draws the board background
+---@param conf Config
+---@param dimensions table containing board dimensions and positions
+local function drawBg(conf, dimensions)
+    if (not resources.textures.field) then
+        return
+    end
+
+    love.graphics.setColor(conf.colors.black)
+    love.graphics.draw(resources.textures.field, dimensions.startX, dimensions.startY, 0,
+        dimensions.boardWidth / resources.textures.field:getWidth(),
+        dimensions.boardHeight / resources.textures.field:getHeight())
+end
+
+function board.draw(conf, state)
+    local dimensions = board.getDimensions(conf)
+    drawBg(conf, dimensions)
+
+    -- NOTE: draw cells and their contents
+    for i = 1, conf.field.size do
+        for j = 1, conf.field.size do
+            -- NOTE: calculate position with gaps
+            local pos = board.getWorldPosInBoardSpace(conf, j, i)
+            local x, y = pos.x, pos.y
+
+            -- TODO: if has element in this cell, then do not draw that cell
+
+            cell.draw(conf, x, y, dimensions.cellSize, board.getBoardCellUID(state, i, j))
+
+            local element_uid = board.getBoardElemUID(state, i, j)
+            if element_uid then
+                element.draw(conf, x, y, element_uid, dimensions.cellSize)
+            end
+        end
+    end
 end
 
 ---@param conf Config
