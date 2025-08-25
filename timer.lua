@@ -14,9 +14,10 @@ function timer.delay(state, duration, callback)
 end
 
 ---Updates the timers
----@param state State
+---@param game Game
 ---@param dt number
-function timer.update(state, dt)
+function timer.update(game, dt)
+    local state = game.state
     for i = #state.timers, 1, -1 do
         local timer = state.timers[i]
         if timer:update(dt) then

@@ -1,70 +1,99 @@
+local log = import("log")
 local utils = import("utils")
 local resources = import("resources")
 local element = import("element")
 
 local hand = {}
 
----@param state State
-function hand.init(state)
+---@param game Game
+function hand.init(game)
+    local state = game.state
     local hand_uid = generate_uid()
-    state.hands[hand_uid] = { uid = hand_uid, elem_uids = {} }
+    state.hands[hand_uid] = { 
+        uid = hand_uid, 
+        elem_uids = {},
+        transform = { x = 0, y = 0, width = 0, height = 0, scale = 1 }
+    }
     return hand_uid
 end
 
----@param state State
+---@param game Game
 ---@param hand_uid number
 ---@param index number
 ---@param elem_uid number
-function hand.addElem(state, hand_uid, index, elem_uid)
-    table.insert(state.hands[hand_uid].elem_uids, index, elem_uid)
+function hand.addElem(game, hand_uid, index, elem_uid)
+    local state = game.state
+    state.hands[hand_uid].elem_uids[index] = elem_uid
 end
 
----@param state State
+---@param game Game
 ---@param hand_uid number
 ---@param index number
 ---@return Element
-function hand.getElemUID(state, hand_uid, index)
+function hand.getElemUID(game, hand_uid, index)
+    local state = game.state
     return state.hands[hand_uid].elem_uids[index]
 end
 
----@param state State
+---@param game Game
 ---@param hand_uid number
 ---@param index number
-function hand.removeElem(state, hand_uid, index)
-    table.remove(state.hands[hand_uid].elem_uids, index)
+function hand.removeElem(game, hand_uid, index)
+    local state = game.state
+    state.hands[hand_uid].elem_uids[index] = nil
 end
 
----@param conf Config
----@param state State
+---@param game Game
+---@param hand_uid number
+---@param elem_uid number
+function hand.getIndex(game, hand_uid, elem_uid)
+    local state = game.state
+    for index, elem_uid in ipairs(state.hands[hand_uid].elem_uids) do
+        if elem_uid == elem_uid then
+            return index
+        end
+    end
+end
+
+---@param game Game
 ---@param hand_uid number
 ---@param index number
 ---@return XYData
-function hand.getWorldPosInHandSpace(conf, state, hand_uid, index)
+function hand.getWorldTransformInHandSpace(game, hand_uid, index)
+    local conf = game.conf
+    local state = game.state
     local hand_dimensions = hand.getDimensions(conf)
-    local hand = state.hands[hand_uid]
-    
-    if #hand.elem_uids == 0 then
-        return { x = hand_dimensions.x, y = hand_dimensions.y }
-    end
-    
-    -- NOTE: Calculate element size based on hand dimensions (adaptive)
-    local elementSize = math.min(hand_dimensions.width, hand_dimensions.height) * 0.5 -- 50% of smaller dimension
-    local adaptiveSpacing = elementSize * conf.hand.element_spacing_ratio
-    local totalWidth = #hand.elem_uids * elementSize + (#hand.elem_uids - 1) * adaptiveSpacing
-    
-    -- NOTE: Apply internal margin from hand background
+    local hand_data = state.hands[hand_uid]
     local availableWidth = hand_dimensions.width
     local availableHeight = hand_dimensions.height
     
-    -- NOTE: Calculate starting position to center all elements within available hand area
-    local startX = hand_dimensions.x + (availableWidth - totalWidth) / 2
+    -- NOTE: Calculate element size based on available width and height
+    local elementSize = math.min(availableWidth, availableHeight) * 0.5 -- 50% of smaller dimension
+    local adaptiveSpacing = elementSize * conf.hand.element_spacing_ratio
+    local offsetFromSide = availableWidth * conf.hand.element_offset_from_side_ratio
+    local totalWidth = (#hand_data.elem_uids * elementSize + (#hand_data.elem_uids - 1) * adaptiveSpacing) + (offsetFromSide * 2)
+
+    if totalWidth > availableWidth then
+        local scaleFactor = availableWidth / totalWidth
+        elementSize = elementSize * scaleFactor
+        adaptiveSpacing = adaptiveSpacing * scaleFactor
+    end
+    
+    -- NOTE: Calculate starting position from left edge of hand 
+    local startX = hand_dimensions.x + offsetFromSide
     local centerY = hand_dimensions.y + availableHeight / 2
     
-    -- NOTE: Calculate position for the specific element
+    -- NOTE: Calculate position for the specific element (sequential from left to right)
     local x = startX + (index - 1) * (elementSize + adaptiveSpacing)
     local y = centerY - elementSize / 2
     
-    return { x = x, y = y }
+    return {
+        x = x,
+        y = y,
+        width = elementSize,
+        height = elementSize,
+        space = "hand"
+    }
 end
 
 ---Calculates hand background dimensions and position with adaptive scaling
@@ -122,33 +151,73 @@ function hand.getDimensions(conf)
     }
 end
 
-local function drawBg(conf, dimensions)
+---Updates the hand
+---@param game Game
+---@param dt number
+function hand.update(game, dt)
+    local conf = game.conf
+    local state = game.state
+    
+    for hand_uid, hand_data in pairs(state.hands) do
+        hand.updateTransform(game, hand_uid)
+        hand.updateElementsTransform(game, hand_uid)
+    end
+end
+
+---Updates hand transform based on current window size
+---@param game Game
+---@param hand_uid number
+function hand.updateTransform(game, hand_uid)
+    local conf = game.conf
+    local state = game.state
+    local hand_data = state.hands[hand_uid]
+    local dimensions = hand.getDimensions(conf)
+    
+    hand_data.transform = {
+        x = dimensions.x,
+        y = dimensions.y,
+        width = dimensions.width,
+        height = dimensions.height
+    }
+end
+
+---Updates transforms for all elements in the hand
+---@param game Game
+---@param hand_uid number
+function hand.updateElementsTransform(game, hand_uid)
+    local conf = game.conf
+    local state = game.state
+    local hand_data = state.hands[hand_uid]
+    
+    for index, elem_uid in ipairs(hand_data.elem_uids) do
+        if elem_uid then
+            local elem = state.elements[elem_uid]
+            if elem then
+                elem.transform = hand.getWorldTransformInHandSpace(game, hand_uid, index)
+                elem.z_index = -1
+            end
+        end
+    end
+end
+
+local function drawBg(conf, transform)
     if (not resources.textures.hand) then
         return
     end
 
     love.graphics.setColor(conf.colors.black)
-    love.graphics.draw(resources.textures.hand, dimensions.x, dimensions.y, 0,
-        dimensions.width / resources.textures.hand:getWidth(),
-        dimensions.height / resources.textures.hand:getHeight())
+    love.graphics.draw(resources.textures.hand, transform.x, transform.y, 0,
+        transform.width / resources.textures.hand:getWidth(),
+        transform.height / resources.textures.hand:getHeight())
 end
 
----@param conf Config
----@param state State
-function hand.draw(conf, state)
-    local dimensions = hand.getDimensions(conf)
-    drawBg(conf, dimensions)
-    local currentHand = state.hands[state.players[state.current_player_uid].hand_uid]
-
-    if #currentHand.elem_uids == 0 then return end
-
-    -- NOTE: Calculate element size based on hand dimensions (adaptive)
-    local elementSize = math.min(dimensions.width, dimensions.height) * 0.5 -- 50% of smaller dimension
-
-    for i, elem_uid in ipairs(currentHand.elem_uids) do
-        -- NOTE: Use the corrected hand positioning function
-        local pos = hand.getWorldPosInHandSpace(conf, state, state.players[state.current_player_uid].hand_uid, i)
-        element.draw(conf, pos.x, pos.y, element.get(state, elem_uid), elementSize)
+---@param game Game
+function hand.draw(game)
+    local conf = game.conf
+    local state = game.state
+    
+    for hand_uid, hand_data in pairs(state.hands) do
+        drawBg(conf, hand_data.transform)
     end
 end
 

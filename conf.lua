@@ -108,30 +108,27 @@ conf.text = {
         },
     },
 
-    element_padding = 0.15,            -- NOTE: Text offset from element edges
-
-    letter_scale_factor = 0.7, -- NOTE: Letter scale relative to element size
-    point_scale_factor = 0.7,  -- NOTE: Points scale relative to letter scale
+    element_padding = 0.15,             -- NOTE: Text offset from element edges
+    element_scale_factor = 0.7,         -- NOTE: Element scale relative to element size
+    element_point_scale_factor = 0.7,   -- NOTE: Element points scale relative to element scale
 
     -- NOTE: screen element settings (for elements not on the board)
-    -- TODO: will be better to calculate min/max size based on window size
     screen = {
         base_size = 80,            -- NOTE: Base size in pixels for screen elements
-        min_size = 60,             -- NOTE: Minimum element size in pixels
-        max_size = 120             -- NOTE: Maximum element size in pixels
     }
 }
 
 -- NOTE: hand settings
 conf.hand = {
-    width_ratio = 0.8,                  -- NOTE: Width as ratio of screen width
-    height_ratio = 0.15,                -- NOTE: Height as ratio of screen height
-    offset_from_center_percent = 1.2,   -- NOTE: Offset from center of screen as percentage of screen
-    min_offset_from_bottom_screen_percent = 0.01, -- NOTE: Minimum margin from screen edge in pixels
-    min_height = 60,                    -- NOTE: Minimum height for hand in pixels (based on window size) (TODO: will be better to calculate min height based on window size)
-    element_spacing_ratio = 0.12,       -- NOTE: Spacing as ratio of element size
-    available_width_ratio = 0.9,        -- NOTE: Available width ratio for elements within hand
-    available_height_ratio = 0.8        -- NOTE: Available height ratio for elements within hand
+    width_ratio = 0.8,                              -- NOTE: Width as ratio of screen width
+    height_ratio = 0.15,                            -- NOTE: Height as ratio of screen height
+    offset_from_center_percent = 1.2,               -- NOTE: Offset from center of screen as percentage of screen
+    min_offset_from_bottom_screen_percent = 0.01,   -- NOTE: Minimum margin from screen edge in pixels
+    min_height = 60,                                -- NOTE: Minimum height for hand in pixels (based on window size) (TODO: will be better to calculate min height based on window size)
+    element_spacing_ratio = 0.12,                   -- NOTE: Spacing as ratio of element size
+    element_offset_from_side_ratio = 0.05,          -- NOTE: Offset from side of screen as percentage of screen width
+    available_width_ratio = 0.9,                    -- NOTE: Available width ratio for elements within hand
+    available_height_ratio = 0.8                    -- NOTE: Available height ratio for elements within hand
 }
 
 -- NOTE: elements settings

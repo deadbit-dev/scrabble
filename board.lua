@@ -8,8 +8,9 @@ local board = {}
 ---@param x number
 ---@param y number
 ---@return Cell
-function board.getBoardCellUID(state, x, y)
-    return cell.get(state, state.board.cell_uids[x][y])
+function board.getBoardCellUID(game, x, y)
+    local state = game.state
+    return state.board.cell_uids[x][y]
 end
 
 ---Sets a cell on the board
@@ -17,7 +18,8 @@ end
 ---@param x number
 ---@param y number
 ---@param cell_uid number
-function board.addCell(state, x, y, cell_uid)
+function board.addCell(game, x, y, cell_uid)
+    local state = game.state
     state.board.cell_uids[x][y] = cell_uid
 end
 
@@ -25,8 +27,9 @@ end
 ---@param x number
 ---@param y number
 ---@return Element
-function board.getBoardElemUID(state, x, y)
-    return element.get(state, state.board.elem_uids[x][y])
+function board.getBoardElemUID(game, x, y)
+    local state = game.state
+    return state.board.elem_uids[x][y]
 end
 
 
@@ -35,19 +38,34 @@ end
 ---@param x number
 ---@param y number
 ---@param elem_uid number
-function board.addElement(state, x, y, elem_uid)
+function board.addElement(game, x, y, elem_uid)
+    local state = game.state
     state.board.elem_uids[x][y] = elem_uid
+end
+
+---Removes an element from the board
+---@param state State
+---@param x number
+---@param y number
+function board.removeElement(game, x, y)
+    local state = game.state
+    local elem_uid = state.board.elem_uids[x][y]
+    if elem_uid then
+        state.board.elem_uids[x][y] = nil
+    end
 end
 
 ---Initializes the game board by creating empty cells with multipliers
 ---@param conf Config
 ---@param state State
-function board.init(conf, state)
+function board.init(game)
+    local conf = game.conf
+    local state = game.state
     for i = 1, conf.field.size do
         state.board.cell_uids[i] = {}
         state.board.elem_uids[i] = {}
         for j = 1, conf.field.size do
-            board.addCell(state, i, j, cell.create(state, conf.field.multipliers[i][j]))
+            board.addCell(game, i, j, cell.create(game, conf.field.multipliers[i][j]))
         end
     end
 end
@@ -110,38 +128,80 @@ function board.getDimensions(conf)
     }
 end
 
+---Updates the board
+---@param game Game
+---@param dt number
+function board.update(game, dt)
+    local conf = game.conf
+    local dimensions = board.getDimensions(conf)
+    
+    board.updateTransform(game, dimensions)
+    board.updateElementsTransform(game, dimensions)
+end
+
+---Updates board transform based on current window size
+---@param game Game
+---@param dimensions table
+function board.updateTransform(game, dimensions)
+    local state = game.state
+    
+    state.board.transform = {
+        x = dimensions.startX,
+        y = dimensions.startY,
+        width = dimensions.boardWidth,
+        height = dimensions.boardHeight
+    }
+end
+
+---Updates transforms for all elements on the board
+---@param game Game
+---@param dimensions table
+function board.updateElementsTransform(game, dimensions)
+    local conf = game.conf
+    local state = game.state
+    
+    for j = 1, conf.field.size do
+        for i = 1, conf.field.size do
+            local element_uid = board.getBoardElemUID(game, i, j)
+            if element_uid then
+                local elem = element.get(game, element_uid)
+                if elem then
+                    elem.transform = board.getWorldTransformInBoardSpace(conf, i, j)
+                    elem.z_index = -2
+                end
+            end
+        end
+    end
+end
+
 ---Draws the board background
 ---@param conf Config
----@param dimensions table containing board dimensions and positions
-local function drawBg(conf, dimensions)
+---@param transform Transform
+local function drawBg(conf, transform)
     if (not resources.textures.field) then
         return
     end
 
     love.graphics.setColor(conf.colors.black)
-    love.graphics.draw(resources.textures.field, dimensions.startX, dimensions.startY, 0,
-        dimensions.boardWidth / resources.textures.field:getWidth(),
-        dimensions.boardHeight / resources.textures.field:getHeight())
+    love.graphics.draw(resources.textures.field, transform.x, transform.y, 0,
+        transform.width / resources.textures.field:getWidth(),
+        transform.height / resources.textures.field:getHeight())
 end
 
-function board.draw(conf, state)
-    local dimensions = board.getDimensions(conf)
-    drawBg(conf, dimensions)
-
-    -- NOTE: draw cells and their contents
+function board.draw(game)
+    local conf = game.conf
+    local state = game.state
+    
+    drawBg(conf, state.board.transform)
+    
     for i = 1, conf.field.size do
         for j = 1, conf.field.size do
-            -- NOTE: calculate position with gaps
-            local pos = board.getWorldPosInBoardSpace(conf, j, i)
-            local x, y = pos.x, pos.y
-
-            -- TODO: if has element in this cell, then do not draw that cell
-
-            cell.draw(conf, x, y, dimensions.cellSize, board.getBoardCellUID(state, i, j))
-
-            local element_uid = board.getBoardElemUID(state, i, j)
-            if element_uid then
-                element.draw(conf, x, y, element_uid, dimensions.cellSize)
+            local cell_uid = board.getBoardCellUID(game, j, i)
+            if cell_uid then
+                local cell_data = cell.get(game, cell_uid)
+                local transform = board.getWorldTransformInBoardSpace(conf, j, i)
+                local cell_size = math.min(transform.width, transform.height)
+                cell.draw(game, transform.x, transform.y, cell_size, cell_data)
             end
         end
     end
@@ -151,12 +211,15 @@ end
 ---@param x number
 ---@param y number
 ---@return XYData
-function board.getWorldPosInBoardSpace(conf, x, y)
+function board.getWorldTransformInBoardSpace(conf, x, y)
     local dimensions = board.getDimensions(conf)
     return {
         x = dimensions.startX + dimensions.fieldGaps.left +
             (x - 1) * (dimensions.cellSize + dimensions.cellGap),
-        y = dimensions.startY + dimensions.fieldGaps.top + (y - 1) * (dimensions.cellSize + dimensions.cellGap)
+        y = dimensions.startY + dimensions.fieldGaps.top + (y - 1) * (dimensions.cellSize + dimensions.cellGap),
+        width = dimensions.cellSize,
+        height = dimensions.cellSize,
+        space = "board"
     }
 end
 

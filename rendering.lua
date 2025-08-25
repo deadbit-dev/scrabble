@@ -1,19 +1,10 @@
-local log = import("log")
 local resources = import("resources")
+local transition = import("transition")
 local board = import("board")
 local hand = import("hand")
-local transition = import("transition")
+local element = import("element")
 
 local rendering = {}
-
----Draws all transitions
----@param conf Config
----@param state State
-local function drawTransitions(conf, state)
-    for _, trans in ipairs(state.transitions) do
-        transition.draw(conf, state, trans)
-    end
-end
 
 ---Draws the game board and all its elements
 ---@param game Game
@@ -25,9 +16,19 @@ function rendering.draw(game)
 
     love.graphics.clear(conf.colors.background)
 
-    board.draw(conf, state)
-    hand.draw(conf, state)
-    drawTransitions(conf, state)
+    board.draw(game)
+    hand.draw(game)
+
+    -- NOTE: Sort elements by z_index before drawing
+    local sorted_elements = {}
+    for _, elem in pairs(state.elements) do
+        table.insert(sorted_elements, elem)
+    end
+    table.sort(sorted_elements, function(a, b) return a.z_index < b.z_index end)
+
+    for _, elem in pairs(sorted_elements) do
+        element.draw(game, elem)
+    end
 end
 
 return rendering

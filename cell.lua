@@ -3,26 +3,29 @@ local resources = import("resources")
 local cell = {}
 
 ---Creates a cell
----@param state State
+---@param game Game
 ---@param multiplier number
 ---@return number
-function cell.create(state, multiplier)
+function cell.create(game, multiplier)
+    local state = game.state
     local cell_uid = generate_uid()
     state.cells[cell_uid] = { uid = cell_uid, multiplier = multiplier }
     return cell_uid
 end
 
----@param state State
+---@param game Game
 ---@param uid number
 ---@return Cell
-function cell.get(state, uid)
+function cell.get(game, uid)
+    local state = game.state
     return state.cells[uid]
 end
 
 ---Removes a cell
----@param state State
+---@param game Game
 ---@param cell_uid number
-function cell.remove(state, cell_uid)
+function cell.remove(game, cell_uid)
+    local state = game.state
     state.cells[cell_uid] = nil
 end
 
@@ -31,7 +34,9 @@ end
 ---@param y number Y position of the cell
 ---@param cellSize number Size of the cell
 ---@param cell Cell
-function cell.draw(conf, x, y, cellSize, cell)
+function cell.draw(game, x, y, cellSize, cell)
+    local conf = game.conf
+
     -- NOTE: draw cell
     if resources.textures.cell then
         love.graphics.setColor(conf.field.cell_colors.multiplier[cell.multiplier])

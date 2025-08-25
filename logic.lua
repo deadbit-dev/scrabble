@@ -1,55 +1,58 @@
 local tween = import("tween")
 local board = import("board")
+local hand = import("hand")
 local element = import("element")
 local transition = import("transition")
 local player = import("player")
 local timer = import("timer")
+local input = import("input")
+local drag = import("drag")
+local drop = import("drop")
+local log = import("log")
+local tests = import("tests")
 
 local logic = {}
 
 ---Initializes the initial game state
 ---@param game Game
 function logic.init(game)
-    local conf = game.conf
-    local state = game.state
-    
     _G.uid_counter = 0
 
-    board.init(conf, state)
-    player.init(state)
+    board.init(game)
+    player.init(game)
 
-    board.addElement(state, 2, 1, element.create(state, "H", conf.elements.english["H"].points))
-    board.addElement(state, 2, 2, element.create(state, "E", conf.elements.english["E"].points))
-    board.addElement(state, 2, 3, element.create(state, "L", conf.elements.english["L"].points))
-    board.addElement(state, 2, 4, element.create(state, "L", conf.elements.english["L"].points))
-    board.addElement(state, 2, 5, element.create(state, "O", conf.elements.english["O"].points))
+    drag.init(game)
+    drop.init(game)
+
+    tests.addElementToBoard(game)
     
-    board.addElement(state, 1, 5, element.create(state, "W", conf.elements.english["W"].points))
-    board.addElement(state, 3, 5, element.create(state, "R", conf.elements.english["R"].points))
-    board.addElement(state, 4, 5, element.create(state, "L", conf.elements.english["L"].points))
-    board.addElement(state, 5, 5, element.create(state, "D", conf.elements.english["D"].points))
+    -- Тестируем новую transform архитектуру
+    timer.delay(game.state, 0.1, function()
+        tests.testTransformArchitecture(game)
+    end)
 end
 
+---Restarts the game
+---@param game Game
 function logic.restart(game)
     clearState(game.state)
     logic.init(game)
 end
 
----Handles key presses
 ---@param game Game
----@param key string
-function logic.keypressed(game, key)
-    if key == "f11" then
+local function checkDevInput(game)
+    local state = game.state
+    if input.is_key_released(state, "f11") then
         local fullscreen = not love.window.getFullscreen()
         love.window.setFullscreen(fullscreen, "desktop")
     end
 
-    if key == "r" then
+    if input.is_key_released(state, "r") then
         logic.restart(game)
     end
 
-    if key == "t" then
-        testTransition(game)
+    if input.is_key_released(state, "t") then
+        tests.transition(game)
     end
 end
 
@@ -57,10 +60,14 @@ end
 ---@param game Game
 ---@param dt number Time elapsed since the last frame in seconds
 function logic.update(game, dt)
-    timer.update(game.state, dt)
-    transition.update(game.state, dt)
+    checkDevInput(game)
+    drag.update(game, dt)
+    drop.update(game, dt)
+    timer.update(game, dt)
+    board.update(game, dt)
+    hand.update(game, dt)
+    transition.update(game, dt) --<- broken
+    element.update(game, dt)
 end
-
-
 
 return logic

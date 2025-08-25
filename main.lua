@@ -14,23 +14,41 @@ local game = {
 }
 
 local logic = import("logic")
+local input = import("input")
 local rendering = import("rendering")
 local resources = import("resources")
 
 function love.load()
     resources.load()
     logic.init(game)
+    input.init(game)
 end
 
----@diagnostic disable-next-line: duplicate-set-field
 function love.keypressed(key)
-    logic.keypressed(game, key)
+    input.keypressed(game, key)
+end
+
+function love.keyreleased(key)
+    input.keyreleased(game, key)
+end
+
+function love.mousepressed(x, y, button)
+    input.mousepressed(game, x, y, button)
+end
+
+function love.mousemoved(x, y, dx, dy)
+    input.mousemoved(game, x, y, dx, dy)
+end
+
+function love.mousereleased(x, y, button)
+    input.mousereleased(game, x, y, button)
 end
 
 local lurker = require("lurker")
 function love.update(dt)
     lurker.update()
     logic.update(game, dt)
+    input.clear(game)
 end
 
 ---@diagnostic disable-next-line: duplicate-set-field

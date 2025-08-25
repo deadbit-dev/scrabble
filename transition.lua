@@ -16,18 +16,37 @@ local transition = {}
 ---@param to SpaceInfo
 ---@param onComplete function|nil
 ---@return number
-function transition.create(conf, state, elem_uid, duration, easing, from, to, onComplete)
-    local element = element.get(state, elem_uid)
+function transition.create(game, elem_uid, duration, easing, from, to, onComplete)
+    local conf = game.conf
+    local state = game.state
+
+    local element = element.get(game, elem_uid)
     table.insert(state.transitions, {
         uid = elem_uid,
         tween = tween.new(
             duration,
-            transition.getWorldParamsFromSpaceInfo(conf, state, from, element),
-            transition.getWorldParamsFromSpaceInfo(conf, state, to, element),
+            transition.getWorldTransformFromSpaceInfo(game, from, element),
+            transition.getWorldTransformFromSpaceInfo(game, to, element),
             easing
         ),
         onComplete = onComplete,
     })
+
+    -- TODO: remove and add to pool ??
+
+    -- if from.type == "hand" then
+    --     hand.removeElem(game, from.data.hand_uid, from.data.index)
+    -- end
+    -- if from.type == "board" then
+    --     board.removeElement(game, from.data.x, from.data.y, elem_uid)
+    -- end
+
+    -- if to.type == "hand" then
+    --     hand.addElem(game, to.data.hand_uid, to.data.index, elem_uid)
+    -- end
+    -- if to.type == "board" then
+    --     board.addElement(game, to.data.x, to.data.y, elem_uid)
+    -- end
 
     return #state.transitions
 end
@@ -39,11 +58,26 @@ function transition.remove(state, idx)
     table.remove(state.transitions, idx)
 end
 
-function transition.update(state, dt)
+---Updates the transitions
+---@param game Game
+---@param dt number
+function transition.update(game, dt)
+    local state = game.state
     for i = #state.transitions, 1, -1 do
         local trans = state.transitions[i]
         if trans.tween ~= nil then
-            if trans.tween:update(dt) then
+            local isDone = trans.tween:update(dt)
+            local elem = element.get(game, trans.uid)
+            if elem then
+                elem.transform = {
+                    x = trans.tween.subject.position.x,
+                    y = trans.tween.subject.position.y,
+                    width = trans.tween.subject.width,
+                    height = trans.tween.subject.height,
+                }
+                elem.z_index = 1
+            end
+            if isDone then
                 if trans.onComplete then
                     trans.onComplete()
                 end
@@ -53,45 +87,36 @@ function transition.update(state, dt)
     end
 end
 
----@param conf Config
----@param state State
----@param transition Transition
-function transition.draw(conf, state, transition)
-    local elem = element.get(state, transition.uid)
-    local transform = transition.tween.subject
-    local position = transform.position
-    local scale = transform.scale
-
-    element.draw(conf, position.x, position.y, elem, scale)
-end
-
 ---Calculates world transform from space info
----@param conf Config
+---@param game Game
 ---@param spaceInfo SpaceInfo
 ---@param element Element
 ---@return table undefined
-function transition.getWorldParamsFromSpaceInfo(conf, state, spaceInfo, element)
+function transition.getWorldTransformFromSpaceInfo(game, spaceInfo, element)
+    local conf = game.conf
+    local state = game.state
+
     -- NOTE: screen is default space info, nothing converts
-    local worldParams = {
+    local worldTransform = {
         position = { x = spaceInfo.data.x, y = spaceInfo.data.y },
-        scale = conf.text.screen.base_size
+        width = conf.text.screen.base_size,
+        height = conf.text.screen.base_size,
+        space = "screen"
     }
 
     if (spaceInfo.type == "board") then
         local dimensions = board.getDimensions(conf)
-        worldParams.position = board.getWorldPosInBoardSpace(conf, spaceInfo.data.x, spaceInfo.data.y)
-        worldParams.scale = dimensions.cellSize
+        worldTransform = board.getWorldTransformInBoardSpace(conf, spaceInfo.data.x, spaceInfo.data.y)
     elseif (spaceInfo.type == "hand") then
         local dimensions = hand.getDimensions(conf)
-        worldParams.position = hand.getWorldPosInHandSpace(conf, state, spaceInfo.data.hand_uid, spaceInfo.data.index)
-        worldParams.scale = math.min(dimensions.width, dimensions.height) * 0.5
+        worldTransform = hand.getWorldTransformInHandSpace(game, spaceInfo.data.hand_uid, spaceInfo.data.index)
     end
 
-    return worldParams
+    return worldTransform
 end
 
 function transition.poolToHand(game, elem_uid, hand_uid, toIndex, onComplete)
-    transition.create(game.conf, game.state, elem_uid, 0.7, tween.easing.inOutCubic,
+    transition.create(game, elem_uid, 0.7, tween.easing.inOutCubic,
         -- NOTE: from right of the screen - from pool
         {
             type = "screen",
@@ -100,8 +125,6 @@ function transition.poolToHand(game, elem_uid, hand_uid, toIndex, onComplete)
                 y = love.graphics.getHeight() / 2
             }
         },
-
-        -- NOTE: to bottom of the screen - to hand
         {
             type = "hand",
             data = {
@@ -110,18 +133,12 @@ function transition.poolToHand(game, elem_uid, hand_uid, toIndex, onComplete)
             }
         },
         onComplete
-
     )
 end
 
-function transition.handToBoard(game, hand_uid, fromIndex, toX, toY, onComplete)
-    local conf = game.conf
-    local state = game.state
-
-    local elem_uid = hand.getElemUID(state, hand_uid, fromIndex)
-    transition.create(conf, state, elem_uid, 0.7, tween.easing.inOutCubic,
-        -- NOTE: from bottom of the screen - from hand
-        -- TODO: hand space
+function transition.handToBoard(game, hand_uid, elem_uid, fromIndex, toX, toY, onComplete)
+    -- local elem_uid = hand.getElemUID(game, hand_uid, fromIndex)
+    transition.create(game, elem_uid, 0.7, tween.easing.inOutCubic,
         {
             type = "hand",
             data = {
@@ -129,8 +146,6 @@ function transition.handToBoard(game, hand_uid, fromIndex, toX, toY, onComplete)
                 index = fromIndex
             }
         },
-
-        -- NOTE: to left bottom corner of the board - to board
         {
             type = "board",
             data = {
@@ -140,18 +155,6 @@ function transition.handToBoard(game, hand_uid, fromIndex, toX, toY, onComplete)
         },
         onComplete
     )
-end
-
-function testTransition(game)
-    local elem_uid = element.create(game.state, "A", 1)
-    local hand_uid = game.state.players[game.state.current_player_uid].hand_uid
-    transition.poolToHand(game, elem_uid, hand_uid, 1, function()
-        timer.delay(game.state, 0.25, function()
-            transition.handToBoard(game, hand_uid, 1, 1, 15, function()
-                element.remove(game.state, elem_uid)
-            end)
-        end)
-    end)
 end
 
 return transition
