@@ -4,17 +4,17 @@ local element = import("element")
 
 local board = {}
 
----@param state State
+---@param game Game
 ---@param x number
 ---@param y number
----@return Cell
+---@return number
 function board.getBoardCellUID(game, x, y)
     local state = game.state
     return state.board.cell_uids[x][y]
 end
 
 ---Sets a cell on the board
----@param state State
+---@param game Game
 ---@param x number
 ---@param y number
 ---@param cell_uid number
@@ -23,28 +23,35 @@ function board.addCell(game, x, y, cell_uid)
     state.board.cell_uids[x][y] = cell_uid
 end
 
----@param state State
+---@param game Game
 ---@param x number
 ---@param y number
----@return Element
+---@return number
 function board.getBoardElemUID(game, x, y)
     local state = game.state
     return state.board.elem_uids[x][y]
 end
 
-
 ---Sets an element on the board
----@param state State
+---@param game Game
 ---@param x number
 ---@param y number
 ---@param elem_uid number
 function board.addElement(game, x, y, elem_uid)
     local state = game.state
     state.board.elem_uids[x][y] = elem_uid
+    local elem = element.get(game, elem_uid)
+    elem.space = {
+        type = "board",
+        data = {
+            x = x,
+            y = y
+        }
+    }
 end
 
 ---Removes an element from the board
----@param state State
+---@param game Game
 ---@param x number
 ---@param y number
 function board.removeElement(game, x, y)
@@ -56,8 +63,7 @@ function board.removeElement(game, x, y)
 end
 
 ---Initializes the game board by creating empty cells with multipliers
----@param conf Config
----@param state State
+---@param game Game
 function board.init(game)
     local conf = game.conf
     local state = game.state
@@ -134,7 +140,7 @@ end
 function board.update(game, dt)
     local conf = game.conf
     local dimensions = board.getDimensions(conf)
-    
+
     board.updateTransform(game, dimensions)
     board.updateElementsTransform(game, dimensions)
 end
@@ -144,7 +150,7 @@ end
 ---@param dimensions table
 function board.updateTransform(game, dimensions)
     local state = game.state
-    
+
     state.board.transform = {
         x = dimensions.startX,
         y = dimensions.startY,
@@ -159,7 +165,7 @@ end
 function board.updateElementsTransform(game, dimensions)
     local conf = game.conf
     local state = game.state
-    
+
     for j = 1, conf.field.size do
         for i = 1, conf.field.size do
             local element_uid = board.getBoardElemUID(game, i, j)
@@ -191,9 +197,9 @@ end
 function board.draw(game)
     local conf = game.conf
     local state = game.state
-    
+
     drawBg(conf, state.board.transform)
-    
+
     for i = 1, conf.field.size do
         for j = 1, conf.field.size do
             local cell_uid = board.getBoardCellUID(game, j, i)
@@ -218,8 +224,7 @@ function board.getWorldTransformInBoardSpace(conf, x, y)
             (x - 1) * (dimensions.cellSize + dimensions.cellGap),
         y = dimensions.startY + dimensions.fieldGaps.top + (y - 1) * (dimensions.cellSize + dimensions.cellGap),
         width = dimensions.cellSize,
-        height = dimensions.cellSize,
-        space = "board"
+        height = dimensions.cellSize
     }
 end
 

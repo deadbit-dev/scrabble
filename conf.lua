@@ -25,6 +25,7 @@
 
 ---@class HandConfig
 ---@field offset_from_center_percent number Offset from center of screen as percentage of screen height
+---@field min_offset_from_bottom_screen_percent number Minimum margin from bottom screen edge in percentage of screen height
 ---@field width_ratio number Width as ratio of screen width
 ---@field height_ratio number Height as ratio of screen height
 ---@field element_spacing_ratio number Spacing as ratio of element size
@@ -108,60 +109,60 @@ conf.text = {
         },
     },
 
-    element_padding = 0.15,             -- NOTE: Text offset from element edges
-    element_scale_factor = 0.7,         -- NOTE: Element scale relative to element size
-    element_point_scale_factor = 0.7,   -- NOTE: Element points scale relative to element scale
+    element_padding = 0.15,           -- NOTE: Text offset from element edges
+    element_scale_factor = 0.7,       -- NOTE: Element scale relative to element size
+    element_point_scale_factor = 0.7, -- NOTE: Element points scale relative to element scale
 
     -- NOTE: screen element settings (for elements not on the board)
     screen = {
-        base_size = 80,            -- NOTE: Base size in pixels for screen elements
+        base_size = 80, -- NOTE: Base size in pixels for screen elements
     }
 }
 
 -- NOTE: hand settings
 conf.hand = {
-    width_ratio = 0.8,                              -- NOTE: Width as ratio of screen width
-    height_ratio = 0.15,                            -- NOTE: Height as ratio of screen height
-    offset_from_center_percent = 1.2,               -- NOTE: Offset from center of screen as percentage of screen
-    min_offset_from_bottom_screen_percent = 0.01,   -- NOTE: Minimum margin from screen edge in pixels
-    min_height = 60,                                -- NOTE: Minimum height for hand in pixels (based on window size) (TODO: will be better to calculate min height based on window size)
-    element_spacing_ratio = 0.12,                   -- NOTE: Spacing as ratio of element size
-    element_offset_from_side_ratio = 0.05,          -- NOTE: Offset from side of screen as percentage of screen width
-    available_width_ratio = 0.9,                    -- NOTE: Available width ratio for elements within hand
-    available_height_ratio = 0.8                    -- NOTE: Available height ratio for elements within hand
+    width_ratio = 0.8,
+    height_ratio = 0.15,
+    offset_from_center_percent = 1.2,
+    min_offset_from_bottom_screen_percent = 0.01,
+    min_height = 60,
+    element_spacing_ratio = 0.12,
+    element_offset_from_side_ratio = 0.05,
+    available_width_ratio = 0.9,
+    available_height_ratio = 0.8
 }
 
 -- NOTE: elements settings
 -- IDEA: maybe later will be better geneate points for each language depends of world list
 conf.elements = {
     english = {
-        ["A"] = { count = 9,  points = 1 },
-        ["B"] = { count = 2,  points = 3 },
-        ["C"] = { count = 2,  points = 3 },
-        ["D"] = { count = 4,  points = 2 },
+        ["A"] = { count = 9, points = 1 },
+        ["B"] = { count = 2, points = 3 },
+        ["C"] = { count = 2, points = 3 },
+        ["D"] = { count = 4, points = 2 },
         ["E"] = { count = 12, points = 1 },
-        ["F"] = { count = 2,  points = 4 },
-        ["G"] = { count = 3,  points = 2 },
-        ["H"] = { count = 2,  points = 4 },
-        ["I"] = { count = 9,  points = 1 },
-        ["J"] = { count = 1,  points = 8 },
-        ["K"] = { count = 1,  points = 5 },
-        ["L"] = { count = 4,  points = 1 },
-        ["M"] = { count = 2,  points = 3 },
-        ["N"] = { count = 6,  points = 1 },
-        ["O"] = { count = 8,  points = 1 },
-        ["P"] = { count = 2,  points = 3 },
-        ["Q"] = { count = 1,  points = 10 },
-        ["R"] = { count = 6,  points = 1 },
-        ["S"] = { count = 4,  points = 1 },
-        ["T"] = { count = 6,  points = 1 },
-        ["U"] = { count = 4,  points = 1 },
-        ["V"] = { count = 2,  points = 4 },
-        ["W"] = { count = 2,  points = 4 },
-        ["X"] = { count = 1,  points = 8 },
-        ["Y"] = { count = 2,  points = 4 },
-        ["Z"] = { count = 1,  points = 10 },
-        ["*"] = { count = 2,  points = 0 }
+        ["F"] = { count = 2, points = 4 },
+        ["G"] = { count = 3, points = 2 },
+        ["H"] = { count = 2, points = 4 },
+        ["I"] = { count = 9, points = 1 },
+        ["J"] = { count = 1, points = 8 },
+        ["K"] = { count = 1, points = 5 },
+        ["L"] = { count = 4, points = 1 },
+        ["M"] = { count = 2, points = 3 },
+        ["N"] = { count = 6, points = 1 },
+        ["O"] = { count = 8, points = 1 },
+        ["P"] = { count = 2, points = 3 },
+        ["Q"] = { count = 1, points = 10 },
+        ["R"] = { count = 6, points = 1 },
+        ["S"] = { count = 4, points = 1 },
+        ["T"] = { count = 6, points = 1 },
+        ["U"] = { count = 4, points = 1 },
+        ["V"] = { count = 2, points = 4 },
+        ["W"] = { count = 2, points = 4 },
+        ["X"] = { count = 1, points = 8 },
+        ["Y"] = { count = 2, points = 4 },
+        ["Z"] = { count = 1, points = 10 },
+        ["*"] = { count = 2, points = 0 }
     },
     russian = {
         ["А"] = { count = 8, points = 1 },
@@ -200,6 +201,7 @@ conf.elements = {
     }
 }
 
+-- NOTE: system love2d config
 function love.conf(t)
     t.window.resizable = true
     t.window.fullscreen = false

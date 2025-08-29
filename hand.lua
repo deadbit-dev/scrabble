@@ -9,10 +9,10 @@ local hand = {}
 function hand.init(game)
     local state = game.state
     local hand_uid = generate_uid()
-    state.hands[hand_uid] = { 
-        uid = hand_uid, 
+    state.hands[hand_uid] = {
+        uid = hand_uid,
         elem_uids = {},
-        transform = { x = 0, y = 0, width = 0, height = 0, scale = 1 }
+        transform = { x = 0, y = 0, width = 0, height = 0, scale = 1, space = "hand" }
     }
     return hand_uid
 end
@@ -24,6 +24,14 @@ end
 function hand.addElem(game, hand_uid, index, elem_uid)
     local state = game.state
     state.hands[hand_uid].elem_uids[index] = elem_uid
+    local elem = element.get(game, elem_uid)
+    elem.space = {
+        type = "hand",
+        data = {
+            hand_uid = hand_uid,
+            index = index
+        }
+    }
 end
 
 ---@param game Game
@@ -66,33 +74,33 @@ function hand.getWorldTransformInHandSpace(game, hand_uid, index)
     local hand_data = state.hands[hand_uid]
     local availableWidth = hand_dimensions.width
     local availableHeight = hand_dimensions.height
-    
+
     -- NOTE: Calculate element size based on available width and height
     local elementSize = math.min(availableWidth, availableHeight) * 0.5 -- 50% of smaller dimension
     local adaptiveSpacing = elementSize * conf.hand.element_spacing_ratio
     local offsetFromSide = availableWidth * conf.hand.element_offset_from_side_ratio
-    local totalWidth = (#hand_data.elem_uids * elementSize + (#hand_data.elem_uids - 1) * adaptiveSpacing) + (offsetFromSide * 2)
+    local totalWidth = (#hand_data.elem_uids * elementSize + (#hand_data.elem_uids - 1) * adaptiveSpacing) +
+        (offsetFromSide * 2)
 
     if totalWidth > availableWidth then
         local scaleFactor = availableWidth / totalWidth
         elementSize = elementSize * scaleFactor
         adaptiveSpacing = adaptiveSpacing * scaleFactor
     end
-    
-    -- NOTE: Calculate starting position from left edge of hand 
+
+    -- NOTE: Calculate starting position from left edge of hand
     local startX = hand_dimensions.x + offsetFromSide
     local centerY = hand_dimensions.y + availableHeight / 2
-    
+
     -- NOTE: Calculate position for the specific element (sequential from left to right)
     local x = startX + (index - 1) * (elementSize + adaptiveSpacing)
     local y = centerY - elementSize / 2
-    
+
     return {
         x = x,
         y = y,
         width = elementSize,
-        height = elementSize,
-        space = "hand"
+        height = elementSize
     }
 end
 
@@ -117,7 +125,8 @@ function hand.getDimensions(conf)
 
     -- NOTE: Ensure hand doesn't go below screen bottom
     local maxY = windowHeight - height
-    local offset_from_bottom_screen = getPercentSize(windowWidth, windowHeight, conf.hand.min_offset_from_bottom_screen_percent)
+    local offset_from_bottom_screen = getPercentSize(windowWidth, windowHeight,
+        conf.hand.min_offset_from_bottom_screen_percent)
     if y > maxY - offset_from_bottom_screen then
         y = maxY - offset_from_bottom_screen
     end
@@ -157,7 +166,7 @@ end
 function hand.update(game, dt)
     local conf = game.conf
     local state = game.state
-    
+
     for hand_uid, hand_data in pairs(state.hands) do
         hand.updateTransform(game, hand_uid)
         hand.updateElementsTransform(game, hand_uid)
@@ -172,7 +181,7 @@ function hand.updateTransform(game, hand_uid)
     local state = game.state
     local hand_data = state.hands[hand_uid]
     local dimensions = hand.getDimensions(conf)
-    
+
     hand_data.transform = {
         x = dimensions.x,
         y = dimensions.y,
@@ -188,7 +197,7 @@ function hand.updateElementsTransform(game, hand_uid)
     local conf = game.conf
     local state = game.state
     local hand_data = state.hands[hand_uid]
-    
+
     for index, elem_uid in ipairs(hand_data.elem_uids) do
         if elem_uid then
             local elem = state.elements[elem_uid]
@@ -215,7 +224,7 @@ end
 function hand.draw(game)
     local conf = game.conf
     local state = game.state
-    
+
     for hand_uid, hand_data in pairs(state.hands) do
         drawBg(conf, hand_data.transform)
     end

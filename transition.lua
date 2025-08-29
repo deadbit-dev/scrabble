@@ -8,7 +8,7 @@ local timer = import("timer")
 local transition = {}
 
 ---Creates a transition
----@param state State
+---@param game Game
 ---@param elem_uid number
 ---@param duration number
 ---@param easing function
@@ -100,8 +100,7 @@ function transition.getWorldTransformFromSpaceInfo(game, spaceInfo, element)
     local worldTransform = {
         position = { x = spaceInfo.data.x, y = spaceInfo.data.y },
         width = conf.text.screen.base_size,
-        height = conf.text.screen.base_size,
-        space = "screen"
+        height = conf.text.screen.base_size
     }
 
     if (spaceInfo.type == "board") then

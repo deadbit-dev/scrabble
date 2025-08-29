@@ -8,19 +8,26 @@ local element = {}
 ---@param letter string
 ---@param x number|nil
 ---@param y number|nil
----@param scale number|nil
+---@param width number|nil
+---@param height number|nil
 function element.create(game, letter, x, y, width, height)
     local conf = game.conf
     local state = game.state
     local elem_uid = generate_uid()
-    state.elements[elem_uid] = { 
-        uid = elem_uid, 
+    state.elements[elem_uid] = {
+        uid = elem_uid,
         transform = {
             x = x or 0,
             y = y or 0,
             width = width or conf.text.screen.base_size,
-            height = height or conf.text.screen.base_size,
-            space = "screen"
+            height = height or conf.text.screen.base_size
+        },
+        space = {
+            type = "screen",
+            data = {
+                x = x or 0,
+                y = y or 0
+            }
         },
         z_index = 0,
         letter = letter,
@@ -74,7 +81,8 @@ function element.draw(game, elem)
     -- NOTE: Draw element texture
     love.graphics.setColor(conf.colors.white)
     if (resources.textures.element) then
-        love.graphics.draw(resources.textures.element, elem.transform.x, elem.transform.y, 0, texture_scaleX, texture_scaleY)
+        love.graphics.draw(resources.textures.element, elem.transform.x, elem.transform.y, 0, texture_scaleX,
+            texture_scaleY)
     end
 
     -- NOTE: Setup font for text rendering
@@ -97,7 +105,8 @@ function element.draw(game, elem)
     -- NOTE: Draw letter
     love.graphics.push()
     love.graphics.scale(letter_scale)
-    love.graphics.print(elem.letter, elem.transform.x / letter_scale + letter_scaledX, elem.transform.y / letter_scale + letter_scaledY)
+    love.graphics.print(elem.letter, elem.transform.x / letter_scale + letter_scaledX,
+        elem.transform.y / letter_scale + letter_scaledY)
     love.graphics.pop()
 
     -- NOTE: Calculate points scale and position
@@ -113,9 +122,9 @@ function element.draw(game, elem)
     -- NOTE: Draw points
     love.graphics.push()
     love.graphics.scale(point_scale)
-    love.graphics.print(elem.points, elem.transform.x / point_scale + points_scaledX, elem.transform.y / point_scale + points_scaledY)
+    love.graphics.print(elem.points, elem.transform.x / point_scale + points_scaledX,
+        elem.transform.y / point_scale + points_scaledY)
     love.graphics.pop()
 end
-
 
 return element

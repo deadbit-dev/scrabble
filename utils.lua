@@ -12,6 +12,12 @@ function clearState(state)
     state.elements = {}
     state.pool = {}
     state.board = {
+        transform = {
+            x = 0,
+            y = 0,
+            width = 0,
+            height = 0
+        },
         cell_uids = {},
         elem_uids = {}
     }

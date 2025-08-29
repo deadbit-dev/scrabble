@@ -8,7 +8,7 @@ function player.init(game)
     local state = game.state
     local player_uid = generate_uid()
     local hand_uid = hand.init(game)
-    state.players[player_uid] = { uid = player_uid, hand_uid = hand_uid }
+    state.players[player_uid] = { uid = player_uid, hand_uid = hand_uid, points = 0 }
     state.current_player_uid = player_uid
 
     hand.addElem(game, hand_uid, 1, element.create(game, "A"))

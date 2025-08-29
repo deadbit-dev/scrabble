@@ -7,11 +7,11 @@
 ---@field y number
 ---@field width number
 ---@field height number
----@field space SpaceType
 
 ---@class Element
 ---@field uid number
 ---@field transform Transform
+---@field space SpaceInfo
 ---@field z_index number
 ---@field letter string
 ---@field points number
@@ -73,8 +73,6 @@
 
 ---@class DragState
 ---@field uid number
----@field x number
----@field y number
 ---@field offset_x number
 ---@field offset_y number
 

@@ -29,7 +29,7 @@ function cell.remove(game, cell_uid)
     state.cells[cell_uid] = nil
 end
 
----@param conf Config
+---@param game Game
 ---@param x number X position of the cell
 ---@param y number Y position of the cell
 ---@param cellSize number Size of the cell
