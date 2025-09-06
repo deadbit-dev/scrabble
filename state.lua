@@ -7,12 +7,12 @@
 ---@field y number
 ---@field width number
 ---@field height number
+---@field z_index number
 
 ---@class Element
 ---@field uid number
 ---@field transform Transform
 ---@field space SpaceInfo
----@field z_index number
 ---@field letter string
 ---@field points number
 
@@ -49,7 +49,7 @@
 ---@field data XYData|SlotData
 
 ---@class Transition
----@field uid number
+---@field element_uid number
 ---@field tween table
 ---@field onComplete function|nil
 
@@ -94,7 +94,7 @@ local state = {
     elements = {},
     pool = {},
     board = {
-        transform = { x = 0, y = 0, width = 0, height = 0, scale = 1 },
+        transform = { x = 0, y = 0, width = 0, height = 0 },
         cell_uids = {},
         elem_uids = {}
     },
@@ -117,5 +117,29 @@ local state = {
     },
     drag = nil
 }
+
+---Clears the state
+function state:clear()
+    self.cells = {}
+    self.elements = {}
+    self.pool = {}
+    self.board = {
+        transform = {
+            x = 0,
+            y = 0,
+            width = 0,
+            height = 0,
+            z_index = 0
+        },
+        cell_uids = {},
+        elem_uids = {}
+    }
+    self.hands = {}
+    self.players = {}
+    self.transitions = {}
+    self.timers = {}
+    self.current_player_uid = nil
+    self.drag = nil
+end
 
 return state

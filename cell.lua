@@ -1,3 +1,4 @@
+local engine = import("engine")
 local resources = import("resources")
 
 local cell = {}
@@ -8,7 +9,7 @@ local cell = {}
 ---@return number
 function cell.create(game, multiplier)
     local state = game.state
-    local cell_uid = generate_uid()
+    local cell_uid = engine.generate_uid()
     state.cells[cell_uid] = { uid = cell_uid, multiplier = multiplier }
     return cell_uid
 end

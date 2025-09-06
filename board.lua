@@ -155,7 +155,8 @@ function board.updateTransform(game, dimensions)
         x = dimensions.startX,
         y = dimensions.startY,
         width = dimensions.boardWidth,
-        height = dimensions.boardHeight
+        height = dimensions.boardHeight,
+        z_index = 0
     }
 end
 
@@ -216,7 +217,7 @@ end
 ---@param conf Config
 ---@param x number
 ---@param y number
----@return XYData
+---@return Transform
 function board.getWorldTransformInBoardSpace(conf, x, y)
     local dimensions = board.getDimensions(conf)
     return {
@@ -224,7 +225,8 @@ function board.getWorldTransformInBoardSpace(conf, x, y)
             (x - 1) * (dimensions.cellSize + dimensions.cellGap),
         y = dimensions.startY + dimensions.fieldGaps.top + (y - 1) * (dimensions.cellSize + dimensions.cellGap),
         width = dimensions.cellSize,
-        height = dimensions.cellSize
+        height = dimensions.cellSize,
+        z_index = 1
     }
 end
 

@@ -24,6 +24,7 @@ function love.load()
     input.init(game)
 end
 
+---@diagnostic disable-next-line: duplicate-set-field
 function love.keypressed(key)
     input.keypressed(game, key)
 end

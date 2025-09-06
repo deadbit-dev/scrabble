@@ -1,34 +1,17 @@
 -- TODO: implement color themes / reorganization for colors of objects
 -- TODO: refactoring - separate config by entity, for example, elements, cells, etc.
 
----@class WindowConfig
----@field padding { top: number, bottom: number, left: number, right: number }
-
----@class Colors
----@field white number[] RGB color values from 0-1
----@field background number[] RGB color values from 0-1
-
----@class FieldConfig
----@field size number Size of the game board (width/height in cells)
----@field gap_ratio { top: number, bottom: number, left: number, right: number } Ratios for field gaps
----@field max_size { width: number, height: number } Maximum board dimensions in pixels
----@field multipliers number[][] 2D array of cell multiplier values
----@field cell_gap_ratio number Ratio for gaps between cells
----@field cell_colors { shadow: number[], multiplier: table<number, number[]> } Colors for cell elements
-
----@class TextConfig
----@field letter_scale_factor number Scale factor for letter text
----@field point_scale_factor number Scale factor for point numbers relative to letter scale
----@field offset number Text positioning offset as fraction of cell size
----@field colors { element: number[], multiplier: table<number, number[]> } Colors for text elements
----@field screen { base_size: number, letter_scale_factor: number, point_scale_factor: number, offset: number, min_size: number, max_size: number } Screen text configuration settings
-
----@class HandConfig
----@field offset_from_center_percent number Offset from center of screen as percentage of screen height
----@field min_offset_from_bottom_screen_percent number Minimum margin from bottom screen edge in percentage of screen height
----@field width_ratio number Width as ratio of screen width
----@field height_ratio number Height as ratio of screen height
----@field element_spacing_ratio number Spacing as ratio of element size
+-- NOTE: system love2d config
+function love.conf(t)
+    t.window.resizable = true
+    t.window.fullscreen = false
+    t.window.fullscreentype = "desktop"
+    t.window.width = 720
+    t.window.height = 1280
+    t.window.title = "Scrabble"
+    t.window.msaa = 4
+    t.window.highdpi = true
+end
 
 ---@class Config
 ---@field window WindowConfig Window configuration settings
@@ -36,10 +19,12 @@
 ---@field field FieldConfig Field/board configuration settings
 ---@field text TextConfig Text configuration settings
 ---@field hand HandConfig Hand configuration settings
+---@field elements ElementsConfig Elements configuration settings
 
 local conf = {}
 
--- NOTE: window settings
+---@class WindowConfig
+---@field padding { top: number, bottom: number, left: number, right: number }
 conf.window = {
     padding = {
         top = 0.2,    -- NOTE: ~150px of 1280px
@@ -49,12 +34,23 @@ conf.window = {
     }
 }
 
+---@class Colors
+---@field white number[] RGB color values from 0-1
+---@field background number[] RGB color values from 0-1
+---@field black number[] RGB color values from 0-1
 conf.colors = {
     white = { 1, 1, 1 },
     background = { 0.92, 0.87, 0.96 },
     black = { 0.27, 0.27, 0.27 }
 }
--- NOTE: field settings
+
+---@class FieldConfig
+---@field size number Size of the game board (width/height in cells)
+---@field gap_ratio { top: number, bottom: number, left: number, right: number } Ratios for field gaps
+---@field max_size { width: number, height: number } Maximum board dimensions in pixels
+---@field multipliers number[][] 2D array of cell multiplier values
+---@field cell_gap_ratio number Ratio for gaps between cells
+---@field cell_colors { shadow: number[], multiplier: table<number, number[]> } Colors for cell elements
 conf.field = {
     size = 15,
     gap_ratio = {
@@ -96,7 +92,12 @@ conf.field = {
     }
 }
 
--- NOTE: text settings
+---@class TextConfig
+---@field letter_scale_factor number Scale factor for letter text
+---@field point_scale_factor number Scale factor for point numbers relative to letter scale
+---@field offset number Text positioning offset as fraction of cell size
+---@field colors { element: number[], multiplier: table<number, number[]> } Colors for text elements
+---@field screen { base_size: number, letter_scale_factor: number, point_scale_factor: number, offset: number, min_size: number, max_size: number } Screen text configuration settingsNOTE: text settings
 conf.text = {
     letter_scale_factor = 0.7,          -- NOTE: Letter scale relative to cell size
     point_scale_factor = 0.7,           -- NOTE: Points scale relative to letter scale
@@ -119,7 +120,12 @@ conf.text = {
     }
 }
 
--- NOTE: hand settings
+---@class HandConfig
+---@field offset_from_center_percent number Offset from center of screen as percentage of screen height
+---@field min_offset_from_bottom_screen_percent number Minimum margin from bottom screen edge in percentage of screen height
+---@field width_ratio number Width as ratio of screen width
+---@field height_ratio number Height as ratio of screen height
+---@field element_spacing_ratio number Spacing as ratio of element size
 conf.hand = {
     width_ratio = 0.8,
     height_ratio = 0.15,
@@ -132,8 +138,9 @@ conf.hand = {
     available_height_ratio = 0.8
 }
 
--- NOTE: elements settings
--- IDEA: maybe later will be better geneate points for each language depends of world list
+---@class ElementsConfig
+---@field english table<string, { count: number, points: number }> English elements configuration
+---@field russian table<string, { count: number, points: number }> Russian elements configuration
 conf.elements = {
     english = {
         ["A"] = { count = 9, points = 1 },
@@ -200,17 +207,5 @@ conf.elements = {
         ["*"] = { count = 2, points = 0 }
     }
 }
-
--- NOTE: system love2d config
-function love.conf(t)
-    t.window.resizable = true
-    t.window.fullscreen = false
-    t.window.fullscreentype = "desktop"
-    t.window.width = 720
-    t.window.height = 1280
-    t.window.title = "Scrabble"
-    t.window.msaa = 4
-    t.window.highdpi = true
-end
 
 return conf

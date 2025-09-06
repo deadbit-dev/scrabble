@@ -1,3 +1,4 @@
+local engine = import("engine")
 local hand = import("hand")
 local element = import("element")
 
@@ -6,7 +7,7 @@ local player = {}
 ---@param game Game
 function player.init(game)
     local state = game.state
-    local player_uid = generate_uid()
+    local player_uid = engine.generate_uid()
     local hand_uid = hand.init(game)
     state.players[player_uid] = { uid = player_uid, hand_uid = hand_uid, points = 0 }
     state.current_player_uid = player_uid

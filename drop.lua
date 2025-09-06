@@ -9,6 +9,11 @@ function drop.init(game)
 end
 
 function drop.update(game, dt)
+    local state = game.state
+
+    if (input.is_mouse_released(state)) then
+        state.drag = nil
+    end
 end
 
 return drop

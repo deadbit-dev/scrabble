@@ -1,4 +1,4 @@
-local utils = import("utils")
+local engine = import("engine")
 local resources = import("resources")
 
 local element = {}
@@ -13,14 +13,15 @@ local element = {}
 function element.create(game, letter, x, y, width, height)
     local conf = game.conf
     local state = game.state
-    local elem_uid = generate_uid()
+    local elem_uid = engine.generate_uid()
     state.elements[elem_uid] = {
         uid = elem_uid,
         transform = {
             x = x or 0,
             y = y or 0,
             width = width or conf.text.screen.base_size,
-            height = height or conf.text.screen.base_size
+            height = height or conf.text.screen.base_size,
+            z_index = 0
         },
         space = {
             type = "screen",
@@ -50,6 +51,30 @@ end
 function element.remove(game, elem_uid)
     local state = game.state
     state.elements[elem_uid] = nil
+end
+
+---Sets an element's space and transform
+---@param game Game
+---@param elem_uid number
+---@param space_info SpaceInfo
+function element.set_space(game, elem_uid, space_info)
+    local element_data = element.get(game, elem_uid)
+    element_data.space = space_info
+end
+
+function element.get_space(game, elem_uid)
+    local element_data = element.get(game, elem_uid)
+    return element_data.space
+end
+
+function element.set_transform(game, elem_uid, transform)
+    local element_data = element.get(game, elem_uid)
+    element_data.transform = transform
+end
+
+function element.get_transform(game, elem_uid)
+    local element_data = element.get(game, elem_uid)
+    return element_data.transform
 end
 
 ---Updates an element

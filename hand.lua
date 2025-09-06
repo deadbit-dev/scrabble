@@ -1,5 +1,6 @@
 local log = import("log")
 local utils = import("utils")
+local engine = import("engine")
 local resources = import("resources")
 local element = import("element")
 
@@ -8,11 +9,11 @@ local hand = {}
 ---@param game Game
 function hand.init(game)
     local state = game.state
-    local hand_uid = generate_uid()
+    local hand_uid = engine.generate_uid()
     state.hands[hand_uid] = {
         uid = hand_uid,
         elem_uids = {},
-        transform = { x = 0, y = 0, width = 0, height = 0, scale = 1, space = "hand" }
+        transform = { x = 0, y = 0, width = 0, height = 0, z_index = 0 }
     }
     return hand_uid
 end
@@ -37,7 +38,7 @@ end
 ---@param game Game
 ---@param hand_uid number
 ---@param index number
----@return Element
+---@return number
 function hand.getElemUID(game, hand_uid, index)
     local state = game.state
     return state.hands[hand_uid].elem_uids[index]
@@ -100,7 +101,8 @@ function hand.getWorldTransformInHandSpace(game, hand_uid, index)
         x = x,
         y = y,
         width = elementSize,
-        height = elementSize
+        height = elementSize,
+        z_index = 2
     }
 end
 
@@ -119,13 +121,14 @@ function hand.getDimensions(conf)
     local minHandHeight = conf.hand.min_height
 
     -- NOTE: Position at bottom center of screen
-    local offset_from_center = getPercentSize(windowWidth / 2, windowHeight / 2, conf.hand.offset_from_center_percent)
+    local offset_from_center = utils.getPercentSize(windowWidth / 2, windowHeight / 2,
+        conf.hand.offset_from_center_percent)
     local x = (windowWidth - width) / 2
     local y = ((windowHeight - height) / 2) + offset_from_center
 
     -- NOTE: Ensure hand doesn't go below screen bottom
     local maxY = windowHeight - height
-    local offset_from_bottom_screen = getPercentSize(windowWidth, windowHeight,
+    local offset_from_bottom_screen = utils.getPercentSize(windowWidth, windowHeight,
         conf.hand.min_offset_from_bottom_screen_percent)
     if y > maxY - offset_from_bottom_screen then
         y = maxY - offset_from_bottom_screen
@@ -186,7 +189,8 @@ function hand.updateTransform(game, hand_uid)
         x = dimensions.x,
         y = dimensions.y,
         width = dimensions.width,
-        height = dimensions.height
+        height = dimensions.height,
+        z_index = 0
     }
 end
 

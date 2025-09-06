@@ -1,4 +1,3 @@
-local tween = import("tween")
 local board = import("board")
 local hand = import("hand")
 local element = import("element")
@@ -25,17 +24,12 @@ function logic.init(game)
     drop.init(game)
 
     tests.addElementToBoard(game)
-    
-    -- Тестируем новую transform архитектуру
-    timer.delay(game.state, 0.1, function()
-        tests.testTransformArchitecture(game)
-    end)
 end
 
 ---Restarts the game
 ---@param game Game
 function logic.restart(game)
-    clearState(game.state)
+    game.state:clear()
     logic.init(game)
 end
 
@@ -66,7 +60,7 @@ function logic.update(game, dt)
     timer.update(game, dt)
     board.update(game, dt)
     hand.update(game, dt)
-    transition.update(game, dt) --<- broken
+    transition.update(game, dt)
     element.update(game, dt)
 end
 

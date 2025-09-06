@@ -1,7 +1,5 @@
-local resources = import("resources")
 local tween = import("tween")
-local board = import("board")
-local hand = import("hand")
+local space = import("space")
 local element = import("element")
 local timer = import("timer")
 
@@ -12,41 +10,23 @@ local transition = {}
 ---@param elem_uid number
 ---@param duration number
 ---@param easing function
----@param from SpaceInfo
 ---@param to SpaceInfo
 ---@param onComplete function|nil
 ---@return number
-function transition.create(game, elem_uid, duration, easing, from, to, onComplete)
-    local conf = game.conf
+function transition.to(game, elem_uid, duration, easing, to, onComplete)
     local state = game.state
+    local element_data = element.get(game, elem_uid)
 
-    local element = element.get(game, elem_uid)
     table.insert(state.transitions, {
-        uid = elem_uid,
+        element_uid = elem_uid,
         tween = tween.new(
             duration,
-            transition.getWorldTransformFromSpaceInfo(game, from, element),
-            transition.getWorldTransformFromSpaceInfo(game, to, element),
+            space.getWorldTransformFromSpaceInfo(game, element_data.space),
+            space.getWorldTransformFromSpaceInfo(game, to),
             easing
         ),
         onComplete = onComplete,
     })
-
-    -- TODO: remove and add to pool ??
-
-    -- if from.type == "hand" then
-    --     hand.removeElem(game, from.data.hand_uid, from.data.index)
-    -- end
-    -- if from.type == "board" then
-    --     board.removeElement(game, from.data.x, from.data.y, elem_uid)
-    -- end
-
-    -- if to.type == "hand" then
-    --     hand.addElem(game, to.data.hand_uid, to.data.index, elem_uid)
-    -- end
-    -- if to.type == "board" then
-    --     board.addElement(game, to.data.x, to.data.y, elem_uid)
-    -- end
 
     return #state.transitions
 end
@@ -66,17 +46,9 @@ function transition.update(game, dt)
     for i = #state.transitions, 1, -1 do
         local trans = state.transitions[i]
         if trans.tween ~= nil then
-            local isDone = trans.tween:update(dt)
-            local elem = element.get(game, trans.uid)
-            if elem then
-                elem.transform = {
-                    x = trans.tween.subject.position.x,
-                    y = trans.tween.subject.position.y,
-                    width = trans.tween.subject.width,
-                    height = trans.tween.subject.height,
-                }
-                elem.z_index = 1
-            end
+            local target_space = element.get_space(game, trans.element_uid)
+            local target_transform = space.getWorldTransformFromSpaceInfo(game, target_space)
+            local isDone = trans.tween:update(dt, target_transform)
             if isDone then
                 if trans.onComplete then
                     trans.onComplete()
@@ -87,71 +59,25 @@ function transition.update(game, dt)
     end
 end
 
----Calculates world transform from space info
----@param game Game
----@param spaceInfo SpaceInfo
----@param element Element
----@return table undefined
-function transition.getWorldTransformFromSpaceInfo(game, spaceInfo, element)
-    local conf = game.conf
-    local state = game.state
-
-    -- NOTE: screen is default space info, nothing converts
-    local worldTransform = {
-        position = { x = spaceInfo.data.x, y = spaceInfo.data.y },
-        width = conf.text.screen.base_size,
-        height = conf.text.screen.base_size
-    }
-
-    if (spaceInfo.type == "board") then
-        local dimensions = board.getDimensions(conf)
-        worldTransform = board.getWorldTransformInBoardSpace(conf, spaceInfo.data.x, spaceInfo.data.y)
-    elseif (spaceInfo.type == "hand") then
-        local dimensions = hand.getDimensions(conf)
-        worldTransform = hand.getWorldTransformInHandSpace(game, spaceInfo.data.hand_uid, spaceInfo.data.index)
-    end
-
-    return worldTransform
+function transition.poolToHand(game, elem_uid, hand_uid, toIndex, onComplete)
+    transition.screenToHand(game, elem_uid, love.graphics.getWidth(), love.graphics.getHeight() / 2, hand_uid, toIndex,
+        onComplete)
 end
 
-function transition.poolToHand(game, elem_uid, hand_uid, toIndex, onComplete)
-    transition.create(game, elem_uid, 0.7, tween.easing.inOutCubic,
-        -- NOTE: from right of the screen - from pool
-        {
-            type = "screen",
-            data = {
-                x = love.graphics.getWidth(),
-                y = love.graphics.getHeight() / 2
-            }
-        },
-        {
-            type = "hand",
-            data = {
-                hand_uid = hand_uid,
-                index = toIndex
-            }
-        },
+function transition.screenToHand(game, elem_uid, fromX, fromY, hand_uid, toIndex, onComplete)
+    -- NOTE: from right of the screen - from pool
+    element.set_space(game, elem_uid, space.createScreenSpace(fromX, fromY))
+
+    transition.to(game, elem_uid, 0.7, tween.easing.inOutCubic,
+        space.createHandSpace(hand_uid, toIndex),
         onComplete
     )
 end
 
 function transition.handToBoard(game, hand_uid, elem_uid, fromIndex, toX, toY, onComplete)
-    -- local elem_uid = hand.getElemUID(game, hand_uid, fromIndex)
-    transition.create(game, elem_uid, 0.7, tween.easing.inOutCubic,
-        {
-            type = "hand",
-            data = {
-                hand_uid = hand_uid,
-                index = fromIndex
-            }
-        },
-        {
-            type = "board",
-            data = {
-                x = toX,
-                y = toY
-            }
-        },
+    element.set_space(game, elem_uid, space.createHandSpace(hand_uid, fromIndex))
+    transition.to(game, elem_uid, 0.7, tween.easing.inOutCubic,
+        space.createBoardSpace(toX, toY),
         onComplete
     )
 end
