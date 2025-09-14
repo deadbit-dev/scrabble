@@ -21,7 +21,7 @@ function element.create(game, letter, x, y, width, height)
             y = y or 0,
             width = width or conf.text.screen.base_size,
             height = height or conf.text.screen.base_size,
-            z_index = 0
+            z_index = 1
         },
         space = {
             type = "screen",
@@ -30,7 +30,6 @@ function element.create(game, letter, x, y, width, height)
                 y = y or 0
             }
         },
-        z_index = 0,
         letter = letter,
         points = conf.elements.english[letter].points
     }

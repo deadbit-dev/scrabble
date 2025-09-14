@@ -20,9 +20,6 @@ function logic.init(game)
     board.init(game)
     player.init(game)
 
-    drag.init(game)
-    drop.init(game)
-
     tests.addElementToBoard(game)
 end
 

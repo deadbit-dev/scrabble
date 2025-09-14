@@ -76,10 +76,53 @@ function board.init(game)
     end
 end
 
----Calculates board dimensions and positions based on window size and configuration
+---Calculates board cell layout
 ---@param conf Config
----@return table containing all calculated dimensions and positions
-function board.getDimensions(conf)
+---@return table containing cellSize, cellGap, and fieldGaps
+function board.getLayout(conf)
+    local windowWidth = love.graphics.getWidth()
+    local windowHeight = love.graphics.getHeight()
+
+    -- NOTE: Calculate the total available space for the board using percentage-based padding
+    local availableWidth = windowWidth * (1 - (conf.window.padding.left + conf.window.padding.right))
+    local availableHeight = windowHeight * (1 - (conf.window.padding.top + conf.window.padding.bottom))
+
+    -- NOTE: Limit the board size to the maximum allowed size
+    if (conf.field.max_size.width < availableWidth) then
+        availableWidth = conf.field.max_size.width
+    end
+
+    if (conf.field.max_size.height < availableHeight) then
+        availableHeight = conf.field.max_size.height
+    end
+
+    -- NOTE: Calculate the space needed for all gaps
+    local cellSize = math.min(
+        availableWidth /
+        (conf.field.size + (conf.field.size - 1) * conf.field.cell_gap_ratio + conf.field.gap_ratio.left + conf.field.gap_ratio.right),
+        availableHeight /
+        (conf.field.size + (conf.field.size - 1) * conf.field.cell_gap_ratio + conf.field.gap_ratio.top + conf.field.gap_ratio.bottom)
+    )
+    local cellGap = cellSize * conf.field.cell_gap_ratio
+    local fieldGaps = {
+        top = cellSize * conf.field.gap_ratio.top,
+        bottom = cellSize * conf.field.gap_ratio.bottom,
+        left = cellSize * conf.field.gap_ratio.left,
+        right = cellSize * conf.field.gap_ratio.right
+    }
+
+    return {
+        cellSize = cellSize,
+        cellGap = cellGap,
+        fieldGaps = fieldGaps
+    }
+end
+
+---Calculates board world transform based on window size and configuration
+---@param game Game
+---@return Transform
+function board.getWorldTransform(game)
+    local conf = game.conf
     local windowWidth = love.graphics.getWidth()
     local windowHeight = love.graphics.getHeight()
 
@@ -124,13 +167,11 @@ function board.getDimensions(conf)
     local startY = (windowHeight / 2) - (boardHeight / 2)
 
     return {
-        cellSize = cellSize,
-        cellGap = cellGap,
-        fieldGaps = fieldGaps,
-        boardWidth = boardWidth,
-        boardHeight = boardHeight,
-        startX = startX,
-        startY = startY
+        x = startX,
+        y = startY,
+        width = boardWidth,
+        height = boardHeight,
+        z_index = 0
     }
 end
 
@@ -138,43 +179,21 @@ end
 ---@param game Game
 ---@param dt number
 function board.update(game, dt)
-    local conf = game.conf
-    local dimensions = board.getDimensions(conf)
-
-    board.updateTransform(game, dimensions)
-    board.updateElementsTransform(game, dimensions)
-end
-
----Updates board transform based on current window size
----@param game Game
----@param dimensions table
-function board.updateTransform(game, dimensions)
-    local state = game.state
-
-    state.board.transform = {
-        x = dimensions.startX,
-        y = dimensions.startY,
-        width = dimensions.boardWidth,
-        height = dimensions.boardHeight,
-        z_index = 0
-    }
+    game.state.board.transform = board.getWorldTransform(game)
+    board.updateElementsTransform(game)
 end
 
 ---Updates transforms for all elements on the board
 ---@param game Game
----@param dimensions table
-function board.updateElementsTransform(game, dimensions)
+function board.updateElementsTransform(game)
     local conf = game.conf
-    local state = game.state
-
     for j = 1, conf.field.size do
         for i = 1, conf.field.size do
             local element_uid = board.getBoardElemUID(game, i, j)
             if element_uid then
                 local elem = element.get(game, element_uid)
                 if elem then
-                    elem.transform = board.getWorldTransformInBoardSpace(conf, i, j)
-                    elem.z_index = -2
+                    elem.transform = board.getWorldTransformInBoardSpace(game, i, j)
                 end
             end
         end
@@ -206,7 +225,7 @@ function board.draw(game)
             local cell_uid = board.getBoardCellUID(game, j, i)
             if cell_uid then
                 local cell_data = cell.get(game, cell_uid)
-                local transform = board.getWorldTransformInBoardSpace(conf, j, i)
+                local transform = board.getWorldTransformInBoardSpace(game, j, i)
                 local cell_size = math.min(transform.width, transform.height)
                 cell.draw(game, transform.x, transform.y, cell_size, cell_data)
             end
@@ -214,19 +233,21 @@ function board.draw(game)
     end
 end
 
----@param conf Config
+---@param game Game
 ---@param x number
 ---@param y number
 ---@return Transform
-function board.getWorldTransformInBoardSpace(conf, x, y)
-    local dimensions = board.getDimensions(conf)
+function board.getWorldTransformInBoardSpace(game, x, y)
+    local conf = game.conf
+    local layout = board.getLayout(conf)
+    local transform = board.getWorldTransform(game)
     return {
-        x = dimensions.startX + dimensions.fieldGaps.left +
-            (x - 1) * (dimensions.cellSize + dimensions.cellGap),
-        y = dimensions.startY + dimensions.fieldGaps.top + (y - 1) * (dimensions.cellSize + dimensions.cellGap),
-        width = dimensions.cellSize,
-        height = dimensions.cellSize,
-        z_index = 1
+        x = transform.x + layout.fieldGaps.left +
+            (x - 1) * (layout.cellSize + layout.cellGap),
+        y = transform.y + layout.fieldGaps.top + (y - 1) * (layout.cellSize + layout.cellGap),
+        width = layout.cellSize,
+        height = layout.cellSize,
+        z_index = -2
     }
 end
 

@@ -1,26 +1,36 @@
+local log = import("log")
 local board = import("board")
 local hand = import("hand")
 local element = import("element")
 
 local space = {}
 
+---Gets the world transform in screen space
+---@param game Game
+---@param x number
+---@param y number
+---@return Transform
+function space.getWorldTransformInScreenSpace(game, x, y)
+    local conf = game.conf
+    return {
+        x = x,
+        y = y,
+        width = conf.text.screen.base_size,
+        height = conf.text.screen.base_size,
+        z_index = 10
+    }
+end
+
 ---Calculates world transform from space info
 ---@param game Game
 ---@param spaceInfo SpaceInfo
----@return table
+---@return Transform
 function space.getWorldTransformFromSpaceInfo(game, spaceInfo)
-    local conf = game.conf
-
     -- NOTE: screen is default space info, nothing converts
-    local worldTransform = {
-        position = { x = spaceInfo.data.x, y = spaceInfo.data.y },
-        width = conf.text.screen.base_size,
-        height = conf.text.screen.base_size,
-        z_index = 0
-    }
+    local worldTransform = space.getWorldTransformInScreenSpace(game, spaceInfo.data.x, spaceInfo.data.y)
 
     if (spaceInfo.type == "board") then
-        worldTransform = board.getWorldTransformInBoardSpace(conf, spaceInfo.data.x, spaceInfo.data.y)
+        worldTransform = board.getWorldTransformInBoardSpace(game, spaceInfo.data.x, spaceInfo.data.y)
     elseif (spaceInfo.type == "hand") then
         worldTransform = hand.getWorldTransformInHandSpace(game, spaceInfo.data.hand_uid, spaceInfo.data.index)
     end
@@ -28,6 +38,87 @@ function space.getWorldTransformFromSpaceInfo(game, spaceInfo)
     return worldTransform
 end
 
+---Gets the space type by position
+---@param game Game
+---@param x number
+---@param y number
+---@return SpaceType
+function space.getSpaceTypeByPosition(game, x, y)
+    -- NOTE: Check if point is in board area
+    log.log("x: " .. x .. ", y: " .. y)
+    print("isInBoardArea: ", space.isInBoardArea(game, x, y))
+    if space.isInBoardArea(game, x, y) then
+        return "board"
+    end
+
+    -- NOTE: Check if point is in hand area
+    if space.isInHandArea(game, x, y) then
+        return "hand"
+    end
+
+    -- NOTE: If not in any specific area, it's in screen space
+    return "screen"
+end
+
+---Checks if point is in board area
+---@param game Game
+---@param x number
+---@param y number
+---@return boolean
+function space.isInBoardArea(game, x, y)
+    local board_transform = board.getWorldTransform(game)
+    return x >= board_transform.x and x <= board_transform.x + board_transform.width and
+        y >= board_transform.y and y <= board_transform.y + board_transform.height
+end
+
+---Checks if point is in hand area
+---@param game Game
+---@param x number
+---@param y number
+---@return boolean
+function space.isInHandArea(game, x, y)
+    local hand_transform = hand.getWorldTransform(game)
+    return x >= hand_transform.x and x <= hand_transform.x + hand_transform.width and
+        y >= hand_transform.y and y <= hand_transform.y + hand_transform.height
+end
+
+---Gets the board position by world position
+---@param game Game
+---@param x number
+---@param y number
+---@return {x: number, y: number}|nil
+function space.getBoardPosByWorldPos(game, x, y)
+    -- Check if point is within board boundaries
+    if not space.isInBoardArea(game, x, y) then
+        return nil
+    end
+
+    local conf = game.conf
+    local layout = board.getLayout(conf)
+    local transform = board.getWorldTransform(game)
+
+    -- Calculate relative position within board area
+    local relX = x - (transform.x + layout.fieldGaps.left)
+    local relY = y - (transform.y + layout.fieldGaps.top)
+
+    -- Calculate cell size including gap
+    local cellSizeWithGap = layout.cellSize + layout.cellGap
+
+    -- Calculate board coordinates (1-based) using round for better snapping
+    local boardX = math.floor(relX / cellSizeWithGap) + 1
+    local boardY = math.floor(relY / cellSizeWithGap) + 1
+
+    -- Clamp coordinates to valid range (1 to field size)
+    boardX = math.max(1, math.min(conf.field.size, boardX))
+    boardY = math.max(1, math.min(conf.field.size, boardY))
+
+    return { x = boardX, y = boardY }
+end
+
+---Sets an element's space and transform
+---@param game Game
+---@param elem_uid number
+---@param space_info SpaceInfo
 function space.set_space(game, elem_uid, space_info)
     element.set_space(game, elem_uid, space_info)
     element.set_transform(game, elem_uid, space.getWorldTransformFromSpaceInfo(game, space_info))

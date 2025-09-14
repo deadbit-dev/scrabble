@@ -1,6 +1,7 @@
 local resources = {
     fonts = {},
     textures = {},
+    imageData = {},
 }
 
 local asset_folder_path = "assets/"
@@ -28,7 +29,9 @@ end
 
 function resources.loadTexture(id, path)
     cleanupResource(resources.textures[id])
-    resources.textures[id] = love.graphics.newImage(path)
+    local imageData = love.image.newImageData(path)
+    resources.imageData[id] = imageData
+    resources.textures[id] = love.graphics.newImage(imageData)
     resources.textures[id]:setFilter("linear", "linear")
 end
 

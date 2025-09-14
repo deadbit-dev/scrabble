@@ -12,6 +12,7 @@ function player.init(game)
     state.players[player_uid] = { uid = player_uid, hand_uid = hand_uid, points = 0 }
     state.current_player_uid = player_uid
 
+    -- NOTE: for test
     hand.addElem(game, hand_uid, 1, element.create(game, "A"))
     hand.addElem(game, hand_uid, 2, element.create(game, "B"))
     hand.addElem(game, hand_uid, 3, element.create(game, "C"))

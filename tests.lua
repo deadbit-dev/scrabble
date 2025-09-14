@@ -25,9 +25,7 @@ function tests.transition(game)
     local elem_uid = element.create(game, "A")
     local hand_uid = game.state.players[game.state.current_player_uid].hand_uid
     transition.poolToHand(game, elem_uid, hand_uid, 1, function()
-        -- timer.delay(game.state, 0.25, function()
         transition.handToBoard(game, hand_uid, elem_uid, 1, 1, 15)
-        -- end)
     end)
 end
 

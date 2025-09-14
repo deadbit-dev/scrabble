@@ -67,14 +67,14 @@ end
 ---@param game Game
 ---@param hand_uid number
 ---@param index number
----@return XYData
+---@return Transform
 function hand.getWorldTransformInHandSpace(game, hand_uid, index)
     local conf = game.conf
     local state = game.state
-    local hand_dimensions = hand.getDimensions(conf)
+    local hand_transform = hand.getWorldTransform(game)
     local hand_data = state.hands[hand_uid]
-    local availableWidth = hand_dimensions.width
-    local availableHeight = hand_dimensions.height
+    local availableWidth = hand_transform.width
+    local availableHeight = hand_transform.height
 
     -- NOTE: Calculate element size based on available width and height
     local elementSize = math.min(availableWidth, availableHeight) * 0.5 -- 50% of smaller dimension
@@ -90,8 +90,8 @@ function hand.getWorldTransformInHandSpace(game, hand_uid, index)
     end
 
     -- NOTE: Calculate starting position from left edge of hand
-    local startX = hand_dimensions.x + offsetFromSide
-    local centerY = hand_dimensions.y + availableHeight / 2
+    local startX = hand_transform.x + offsetFromSide
+    local centerY = hand_transform.y + availableHeight / 2
 
     -- NOTE: Calculate position for the specific element (sequential from left to right)
     local x = startX + (index - 1) * (elementSize + adaptiveSpacing)
@@ -106,10 +106,11 @@ function hand.getWorldTransformInHandSpace(game, hand_uid, index)
     }
 end
 
----Calculates hand background dimensions and position with adaptive scaling
----@param conf Config
----@return table containing hand dimensions and position
-function hand.getDimensions(conf)
+---Calculates hand world transform with adaptive scaling
+---@param game Game
+---@return Transform
+function hand.getWorldTransform(game)
+    local conf = game.conf
     local windowWidth = love.graphics.getWidth()
     local windowHeight = love.graphics.getHeight()
 
@@ -159,7 +160,8 @@ function hand.getDimensions(conf)
         x = baseDimensions.x + (baseDimensions.width - scaledWidth) / 2,
         y = baseDimensions.y + (baseDimensions.height - scaledHeight) / 2,
         width = scaledWidth,
-        height = scaledHeight
+        height = scaledHeight,
+        z_index = 1
     }
 end
 
@@ -170,35 +172,16 @@ function hand.update(game, dt)
     local conf = game.conf
     local state = game.state
 
-    for hand_uid, hand_data in pairs(state.hands) do
-        hand.updateTransform(game, hand_uid)
+    for hand_uid, _ in pairs(state.hands) do
+        state.hands[hand_uid].transform = hand.getWorldTransform(game)
         hand.updateElementsTransform(game, hand_uid)
     end
-end
-
----Updates hand transform based on current window size
----@param game Game
----@param hand_uid number
-function hand.updateTransform(game, hand_uid)
-    local conf = game.conf
-    local state = game.state
-    local hand_data = state.hands[hand_uid]
-    local dimensions = hand.getDimensions(conf)
-
-    hand_data.transform = {
-        x = dimensions.x,
-        y = dimensions.y,
-        width = dimensions.width,
-        height = dimensions.height,
-        z_index = 0
-    }
 end
 
 ---Updates transforms for all elements in the hand
 ---@param game Game
 ---@param hand_uid number
 function hand.updateElementsTransform(game, hand_uid)
-    local conf = game.conf
     local state = game.state
     local hand_data = state.hands[hand_uid]
 
@@ -207,7 +190,6 @@ function hand.updateElementsTransform(game, hand_uid)
             local elem = state.elements[elem_uid]
             if elem then
                 elem.transform = hand.getWorldTransformInHandSpace(game, hand_uid, index)
-                elem.z_index = -1
             end
         end
     end

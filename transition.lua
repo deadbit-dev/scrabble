@@ -1,7 +1,7 @@
+local log = import("log")
 local tween = import("tween")
 local space = import("space")
 local element = import("element")
-local timer = import("timer")
 
 local transition = {}
 
@@ -21,7 +21,7 @@ function transition.to(game, elem_uid, duration, easing, to, onComplete)
         element_uid = elem_uid,
         tween = tween.new(
             duration,
-            space.getWorldTransformFromSpaceInfo(game, element_data.space),
+            element_data.transform,
             space.getWorldTransformFromSpaceInfo(game, to),
             easing
         ),
@@ -48,7 +48,9 @@ function transition.update(game, dt)
         if trans.tween ~= nil then
             local target_space = element.get_space(game, trans.element_uid)
             local target_transform = space.getWorldTransformFromSpaceInfo(game, target_space)
-            local isDone = trans.tween:update(dt, target_transform)
+            trans.tween:updateTarget(target_transform)
+
+            local isDone = trans.tween:update(dt)
             if isDone then
                 if trans.onComplete then
                     trans.onComplete()
@@ -66,7 +68,7 @@ end
 
 function transition.screenToHand(game, elem_uid, fromX, fromY, hand_uid, toIndex, onComplete)
     -- NOTE: from right of the screen - from pool
-    element.set_space(game, elem_uid, space.createScreenSpace(fromX, fromY))
+    space.set_space(game, elem_uid, space.createScreenSpace(fromX, fromY))
 
     transition.to(game, elem_uid, 0.7, tween.easing.inOutCubic,
         space.createHandSpace(hand_uid, toIndex),
@@ -75,7 +77,7 @@ function transition.screenToHand(game, elem_uid, fromX, fromY, hand_uid, toIndex
 end
 
 function transition.handToBoard(game, hand_uid, elem_uid, fromIndex, toX, toY, onComplete)
-    element.set_space(game, elem_uid, space.createHandSpace(hand_uid, fromIndex))
+    space.set_space(game, elem_uid, space.createHandSpace(hand_uid, fromIndex))
     transition.to(game, elem_uid, 0.7, tween.easing.inOutCubic,
         space.createBoardSpace(toX, toY),
         onComplete

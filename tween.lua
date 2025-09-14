@@ -348,15 +348,11 @@ end
 local Tween = {}
 local Tween_mt = { __index = Tween }
 
-function Tween:set(clock, target)
+function Tween:set(clock)
     assert(type(clock) == 'number', "clock must be a positive number or 0")
 
     self.initial = self.initial or copyTables({}, self.target, self.subject)
     self.clock = clock
-
-    if target then
-        copyTables(self.target, self.initial, target)
-    end
 
     if self.clock <= 0 then
         self.clock = 0
@@ -375,9 +371,15 @@ function Tween:reset()
     return self:set(0)
 end
 
-function Tween:update(dt, target)
+function Tween:update(dt)
     assert(type(dt) == 'number', "dt must be a number")
-    return self:set(self.clock + dt, target)
+    return self:set(self.clock + dt)
+end
+
+function Tween:updateTarget(newTarget)
+    if newTarget then
+        copyTables(self.target, {}, newTarget)
+    end
 end
 
 -- Public interface

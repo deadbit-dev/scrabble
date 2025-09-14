@@ -22,6 +22,7 @@ function love.load()
     resources.load()
     logic.init(game)
     input.init(game)
+    rendering.init(game)
 end
 
 ---@diagnostic disable-next-line: duplicate-set-field

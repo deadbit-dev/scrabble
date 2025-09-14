@@ -13,4 +13,8 @@ function utils.getPercentSize(width, height, percent)
     end
 end
 
+function utils.lerp(a, b, t)
+    return a + (b - a) * t
+end
+
 return utils
