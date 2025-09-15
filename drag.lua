@@ -6,15 +6,23 @@ local element = import("element")
 local space = import("space")
 local follow = import("follow")
 local transition = import("transition")
+local selection = import("selection")
+local utils = import("utils")
 
 local drag = {}
 
 local function checkDragStart(game, mouse_pos)
     local state = game.state
     for _, elem in pairs(state.elements) do
-        if (drag.isPointInElementBounds(mouse_pos, elem) and state.drag_element_uid == nil) then
+        if (utils.isPointInElementBounds(mouse_pos, elem) and state.drag_element_uid == nil) then
             local type = elem.space.type
             local data = elem.space.data
+            
+            state.drag_original_space = {
+                type = type,
+                data = data
+            }
+            
             if type == "hand" then
                 hand.removeElem(game, data.hand_uid, data.index)
             elseif type == "board" then
@@ -56,21 +64,11 @@ function drag.update(game, dt)
 
     if (input.is_mouse_pressed(state)) then
         local mouse_pos = input.get_mouse_pos(state)
-        checkDragStart(game, mouse_pos)
+        if (state.drag_element_uid == nil) then
+            checkDragStart(game, mouse_pos)
+        end
         updateDrag(game, mouse_pos, dt)
     end
-end
-
----Checks if point is within element's bounding box
----@param point {x: number, y: number}
----@param element Element
----@return boolean
-function drag.isPointInElementBounds(point, element)
-    local transform = element.transform
-    return point.x >= transform.x
-        and point.x <= transform.x + transform.width
-        and point.y >= transform.y
-        and point.y <= transform.y + transform.height
 end
 
 return drag

@@ -46,6 +46,19 @@ end
 
 ---@param game Game
 ---@param hand_uid number
+---@return number|nil
+function hand.getEmptySlot(game, hand_uid)
+    local state = game.state
+    for index, elem_uid in ipairs(state.hands[hand_uid].elem_uids) do
+        if not elem_uid then
+            return index
+        end
+    end
+    return nil
+end
+
+---@param game Game
+---@param hand_uid number
 ---@param index number
 function hand.removeElem(game, hand_uid, index)
     local state = game.state
@@ -64,6 +77,25 @@ function hand.getIndex(game, hand_uid, elem_uid)
     end
 end
 
+---Checks if hand is empty
+---@param game Game
+---@param hand_uid number
+---@return boolean
+function hand.isEmpty(game, hand_uid)
+    local state = game.state
+    local hand_data = state.hands[hand_uid]
+    if not hand_data then
+        return true
+    end
+    
+    for _, elem_uid in ipairs(hand_data.elem_uids) do
+        if elem_uid then
+            return false
+        end
+    end
+    return true
+end
+
 ---@param game Game
 ---@param hand_uid number
 ---@param index number
@@ -80,7 +112,7 @@ function hand.getWorldTransformInHandSpace(game, hand_uid, index)
     local elementSize = math.min(availableWidth, availableHeight) * 0.5 -- 50% of smaller dimension
     local adaptiveSpacing = elementSize * conf.hand.element_spacing_ratio
     local offsetFromSide = availableWidth * conf.hand.element_offset_from_side_ratio
-    local totalWidth = (#hand_data.elem_uids * elementSize + (#hand_data.elem_uids - 1) * adaptiveSpacing) +
+    local totalWidth = (7 * elementSize + (7 - 1) * adaptiveSpacing) +
         (offsetFromSide * 2)
 
     if totalWidth > availableWidth then

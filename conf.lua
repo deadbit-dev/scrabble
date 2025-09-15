@@ -138,6 +138,16 @@ conf.hand = {
     available_height_ratio = 0.8
 }
 
+---@class ClickConfig
+---@field selection_lift_offset number Pixels to lift element when selected
+---@field selection_animation_duration number Duration of selection animation in seconds
+---@field double_click_threshold number Threshold for double click detection in seconds
+conf.click = {
+    selection_lift_offset = 20,
+    selection_animation_duration = 0.2,
+    double_click_threshold = 0.3
+}
+
 ---@class ElementsConfig
 ---@field english table<string, { count: number, points: number }> English elements configuration
 ---@field russian table<string, { count: number, points: number }> Russian elements configuration

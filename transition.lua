@@ -17,18 +17,34 @@ function transition.to(game, elem_uid, duration, easing, to, onComplete)
     local state = game.state
     local element_data = element.get(game, elem_uid)
 
+    -- Создаем обертку для коллбэка, которая удалит переход
+    local transition_index = #state.transitions + 1
+    local wrappedCallback = function()
+        -- Удаляем переход
+        transition.remove(state, transition_index)
+        -- Вызываем оригинальный коллбэк
+        if onComplete then
+            onComplete()
+        end
+    end
+
+    -- Создаем твин и получаем его UID
+    local tween_uid = tween.create(
+        game,
+        duration,
+        element_data.transform,
+        space.getWorldTransformFromSpaceInfo(game, to),
+        easing,
+        wrappedCallback
+    )
+
     table.insert(state.transitions, {
         element_uid = elem_uid,
-        tween = tween.new(
-            duration,
-            element_data.transform,
-            space.getWorldTransformFromSpaceInfo(game, to),
-            easing
-        ),
+        tween_uid = tween_uid,
         onComplete = onComplete,
     })
 
-    return #state.transitions
+    return transition_index
 end
 
 ---Removes a transition
@@ -45,18 +61,10 @@ function transition.update(game, dt)
     local state = game.state
     for i = #state.transitions, 1, -1 do
         local trans = state.transitions[i]
-        if trans.tween ~= nil then
+        if trans.tween_uid ~= nil then
             local target_space = element.get_space(game, trans.element_uid)
             local target_transform = space.getWorldTransformFromSpaceInfo(game, target_space)
-            trans.tween:updateTarget(target_transform)
-
-            local isDone = trans.tween:update(dt)
-            if isDone then
-                if trans.onComplete then
-                    trans.onComplete()
-                end
-                transition.remove(state, i)
-            end
+            tween.updateTarget(game, trans.tween_uid, target_transform)
         end
     end
 end

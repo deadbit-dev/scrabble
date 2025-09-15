@@ -32,8 +32,38 @@ function drop.update(game, dt)
             transition.to(game, state.drag_element_uid, 0.7, tween.easing.inOutCubic,
                 space.createHandSpace(hand_uid, empty_slot)
             )
+        else
+            -- NOTE: If dropped in screen space (outside board and hand), try to return to hand first, then to original position
+            local hand_uid = state.players[state.current_player_uid].hand_uid
+            local empty_slot = hand.getEmptySlot(game, hand_uid)
+            
+            -- Try to place in hand first
+            if empty_slot ~= nil then
+                log.log("[DROP ELEMENT TO HAND (SCREEN SPACE)]: hand_uid: " .. hand_uid .. ", empty_slot: " .. empty_slot)
+                transition.to(game, state.drag_element_uid, 0.7, tween.easing.inOutCubic,
+                    space.createHandSpace(hand_uid, empty_slot)
+                )
+            else
+                -- If hand is full, return element to its original position
+                log.warn("[DROP ELEMENT TO HAND]: HAND IS FULL! Returning to original position.")
+                if state.drag_original_space then
+                    log.log("[DROP ELEMENT TO ORIGINAL POSITION]: type: " .. state.drag_original_space.type)
+                    if state.drag_original_space.type == "board" then
+                        transition.to(game, state.drag_element_uid, 0.7, tween.easing.inOutCubic,
+                            space.createBoardSpace(state.drag_original_space.data.x, state.drag_original_space.data.y)
+                        )
+                    elseif state.drag_original_space.type == "hand" then
+                        transition.to(game, state.drag_element_uid, 0.7, tween.easing.inOutCubic,
+                            space.createHandSpace(state.drag_original_space.data.hand_uid, state.drag_original_space.data.index)
+                        )
+                    end
+                else
+                    log.warn("[DROP ELEMENT]: No original position found!")
+                end
+            end
         end
         state.drag_element_uid = nil
+        state.drag_original_space = nil
     end
 end
 

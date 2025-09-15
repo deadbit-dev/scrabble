@@ -17,4 +17,16 @@ function utils.lerp(a, b, t)
     return a + (b - a) * t
 end
 
+---Checks if point is within element's bounding box
+---@param point {x: number, y: number}
+---@param element Element
+---@return boolean
+function utils.isPointInElementBounds(point, element)
+    local transform = element.transform
+    return point.x >= transform.x
+        and point.x <= transform.x + transform.width
+        and point.y >= transform.y
+        and point.y <= transform.y + transform.height
+end
+
 return utils

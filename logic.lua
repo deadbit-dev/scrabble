@@ -2,11 +2,13 @@ local board = import("board")
 local hand = import("hand")
 local element = import("element")
 local transition = import("transition")
+local tween = import("tween")
 local player = import("player")
 local timer = import("timer")
 local input = import("input")
 local drag = import("drag")
 local drop = import("drop")
+local selection = import("selection")
 local log = import("log")
 local tests = import("tests")
 
@@ -52,12 +54,14 @@ end
 ---@param dt number Time elapsed since the last frame in seconds
 function logic.update(game, dt)
     checkDevInput(game)
+    -- selection.update(game, dt)
     drag.update(game, dt)
     drop.update(game, dt)
     timer.update(game, dt)
     board.update(game, dt)
     hand.update(game, dt)
     transition.update(game, dt)
+    tween.update(game, dt)
     element.update(game, dt)
 end
 

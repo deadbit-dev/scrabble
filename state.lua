@@ -50,7 +50,17 @@
 
 ---@class Transition
 ---@field element_uid number
----@field tween table
+---@field tween_uid number
+---@field onComplete function|nil
+
+---@class Tween
+---@field uid number
+---@field duration number
+---@field subject table
+---@field target table
+---@field easing function
+---@field clock number
+---@field initial table|nil
 ---@field onComplete function|nil
 
 ---@class ButtonState
@@ -71,11 +81,6 @@
 ---@field mouse MouseState
 ---@field keyboard KeyboardState
 
----@class DragState
----@field uid number
----@field offset_x number
----@field offset_y number
-
 ---@class State
 ---@field cells {[number]: Cell}
 ---@field elements {[number]: Element}
@@ -84,7 +89,11 @@
 ---@field hands {[number]: Hand}
 ---@field players {[number]: Player}
 ---@field transitions Transition[]
----@field drag DragState|nil
+---@field tweens {[number]: Tween}
+---@field drag_element_uid number|nil
+---@field drag_original_space SpaceInfo|nil
+---@field selected_element_uid number|nil
+---@field last_click_time number
 ---@field timers table[]
 ---@field current_player_uid number|nil
 ---@field input InputState
@@ -101,6 +110,7 @@ local state = {
     hands = {},
     players = {},
     transitions = {},
+    tweens = {},
     timers = {},
     current_player_uid = nil,
     input = {
@@ -115,7 +125,10 @@ local state = {
             buttons = {}
         }
     },
-    drag = nil
+    drag_element_uid = nil,
+    drag_original_space = nil,
+    click_element_uid = nil,
+    last_click_time = 0,
 }
 
 ---Clears the state
@@ -137,9 +150,13 @@ function state:clear()
     self.hands = {}
     self.players = {}
     self.transitions = {}
+    self.tweens = {}
     self.timers = {}
     self.current_player_uid = nil
-    self.drag = nil
+    self.drag_element_uid = nil
+    self.drag_original_space = nil
+    self.click_element_uid = nil
+    self.last_click_time = 0
 end
 
 return state

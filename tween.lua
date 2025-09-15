@@ -1,32 +1,6 @@
-local tween = {
-    _VERSION     = 'tween 2.1.1',
-    _DESCRIPTION = 'tweening for lua',
-    _URL         = 'https://github.com/kikito/tween.lua',
-    _LICENSE     = [[
-      MIT LICENSE
+local engine = import("engine")
 
-      Copyright (c) 2014 Enrique García Cota, Yuichi Tateno, Emmanuel Oga
-
-      Permission is hereby granted, free of charge, to any person obtaining a
-      copy of this software and associated documentation files (the
-      "Software"), to deal in the Software without restriction, including
-      without limitation the rights to use, copy, modify, merge, publish,
-      distribute, sublicense, and/or sell copies of the Software, and to
-      permit persons to whom the Software is furnished to do so, subject to
-      the following conditions:
-
-      The above copyright notice and this permission notice shall be included
-      in all copies or substantial portions of the Software.
-
-      THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-      OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-      MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-      IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-      CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-      TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-      SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-    ]]
-}
+local tween = {}
 
 -- easing
 
@@ -343,57 +317,119 @@ local function performEasingOnSubject(subject, target, initial, clock, duration,
     end
 end
 
--- Tween methods
-
-local Tween = {}
-local Tween_mt = { __index = Tween }
-
-function Tween:set(clock)
-    assert(type(clock) == 'number', "clock must be a positive number or 0")
-
-    self.initial = self.initial or copyTables({}, self.target, self.subject)
-    self.clock = clock
-
-    if self.clock <= 0 then
-        self.clock = 0
-        copyTables(self.subject, self.initial)
-    elseif self.clock >= self.duration then -- the tween has expired
-        self.clock = self.duration
-        copyTables(self.subject, self.target)
+---Обновляет твин по UID
+---@param game Game
+---@param tween_uid number
+---@param dt number
+---@return boolean is_completed
+local function update(game, tween_uid, dt)
+    local state = game.state
+    local tween_data = state.tweens[tween_uid]
+    if not tween_data then
+        return true -- Твин не найден, считаем завершенным
+    end
+    
+    -- Инициализируем initial если нужно
+    if not tween_data.initial then
+        tween_data.initial = copyTables({}, tween_data.target, tween_data.subject)
+    end
+    
+    tween_data.clock = tween_data.clock + dt
+    
+    if tween_data.clock <= 0 then
+        tween_data.clock = 0
+        copyTables(tween_data.subject, tween_data.initial)
+        return false
+    elseif tween_data.clock >= tween_data.duration then
+        tween_data.clock = tween_data.duration
+        copyTables(tween_data.subject, tween_data.target)
+        return true
     else
-        performEasingOnSubject(self.subject, self.target, self.initial, self.clock, self.duration, self.easing)
-    end
-
-    return self.clock >= self.duration
-end
-
-function Tween:reset()
-    return self:set(0)
-end
-
-function Tween:update(dt)
-    assert(type(dt) == 'number', "dt must be a number")
-    return self:set(self.clock + dt)
-end
-
-function Tween:updateTarget(newTarget)
-    if newTarget then
-        copyTables(self.target, {}, newTarget)
+        performEasingOnSubject(tween_data.subject, tween_data.target, tween_data.initial, tween_data.clock, tween_data.duration, tween_data.easing)
+        return false
     end
 end
 
--- Public interface
-
-function tween.new(duration, subject, target, easing)
+---Создает новый твин и сохраняет его в состоянии
+---@param game Game
+---@param duration number
+---@param subject table
+---@param target table
+---@param easing function|string
+---@param onComplete function|nil
+---@return number tween_uid
+function tween.create(game, duration, subject, target, easing, onComplete)
     easing = getEasingFunction(easing)
     checkNewParams(duration, subject, target, easing)
-    return setmetatable({
+    
+    local tween_uid = engine.generate_uid()
+    
+    local state = game.state
+    state.tweens[tween_uid] = {
+        uid = tween_uid,
         duration = duration,
-        subject  = subject,
-        target   = target,
-        easing   = easing,
-        clock    = 0
-    }, Tween_mt)
+        subject = subject,
+        target = target,
+        easing = easing,
+        clock = 0,
+        initial = nil,
+        onComplete = onComplete
+    }
+    
+    return tween_uid
+end
+
+---Удаляет твин из состояния
+---@param game Game
+---@param tween_uid number
+function tween.remove(game, tween_uid)
+    local state = game.state
+    state.tweens[tween_uid] = nil
+end
+
+---Обновляет цель твина
+---@param game Game
+---@param tween_uid number
+---@param new_target table
+function tween.updateTarget(game, tween_uid, new_target)
+    local state = game.state
+    local tween_data = state.tweens[tween_uid]
+    if tween_data and new_target then
+        copyTables(tween_data.target, {}, new_target)
+    end
+end
+
+---Получает данные твина
+---@param game Game
+---@param tween_uid number
+---@return TweenData|nil
+function tween.get(game, tween_uid)
+    local state = game.state
+    return state.tweens[tween_uid]
+end
+
+---Обновляет все твины в состоянии
+---@param game Game
+---@param dt number
+function tween.update(game, dt)
+    local state = game.state
+    local tweens_to_remove = {}
+    
+    for tween_uid, tween_data in pairs(state.tweens) do
+        local is_completed = update(game, tween_uid, dt)
+        if is_completed then
+            -- Вызываем коллбэк перед удалением твина
+            if tween_data.onComplete then
+                tween_data.onComplete()
+            end
+            table.insert(tweens_to_remove, tween_uid)
+        end
+    end
+    
+    -- Удаляем завершенные твины
+    for _, tween_uid in ipairs(tweens_to_remove) do
+        tween.remove(game, tween_uid)
+    end
 end
 
 return tween

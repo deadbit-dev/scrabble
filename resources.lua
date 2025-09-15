@@ -22,7 +22,7 @@ local function loadFonts()
     for _, file in ipairs(files) do
         if file:match("%.ttf$") or file:match("%.otf$") then
             local id = file:gsub("%.ttf$", ""):gsub("%.otf$", "")
-            resources.loadFont(id, asset_folder_path .. file, 32)
+            resources.loadFont(id, asset_folder_path .. file, 64)
         end
     end
 end
