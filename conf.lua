@@ -155,6 +155,11 @@ conf.click = {
 
 ---@class ElementsConfig
 ---@field [string] table<string, { count: number, points: number }> Elements configuration by alphabet
-conf.elements = {}
+conf.elements = {
+    latin = require("alphabets.latin"),
+    cyrillic = require("alphabets.cyrillic"),
+    arabic = require("alphabets.arabic"),
+    greek = require("alphabets.greek")
+}
 
 return conf
