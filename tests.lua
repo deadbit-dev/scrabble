@@ -1,9 +1,6 @@
 local board = import("board")
-local hand = import("hand")
 local element = import("element")
 local transition = import("transition")
-local timer = import("timer")
-local log = import("log")
 
 local tests = {}
 

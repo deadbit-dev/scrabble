@@ -25,6 +25,7 @@
 ---@field uid number
 ---@field transform Transform
 ---@field elem_uids (number|nil)[]
+---@field size number
 
 ---@class Player
 ---@field uid number
@@ -73,6 +74,12 @@
 ---@field dx number
 ---@field dy number
 ---@field buttons {[number]: ButtonState}
+---@field last_click_pos {x: number, y: number}|nil
+---@field last_click_time number
+---@field action_type "single"|"double"|"drag"|nil
+---@field click_target_uid number|nil
+---@field drag_active boolean
+---@field drag_element_uid number|nil
 
 ---@class KeyboardState
 ---@field buttons {[string]: ButtonState}
@@ -90,10 +97,8 @@
 ---@field players {[number]: Player}
 ---@field transitions Transition[]
 ---@field tweens {[number]: Tween}
----@field drag_element_uid number|nil
 ---@field drag_original_space SpaceInfo|nil
 ---@field selected_element_uid number|nil
----@field last_click_time number
 ---@field timers table[]
 ---@field current_player_uid number|nil
 ---@field input InputState
@@ -119,16 +124,19 @@ local state = {
             y = 0,
             dx = 0,
             dy = 0,
-            buttons = {}
+            buttons = {},
+            last_click_pos = nil,
+            last_click_time = 0,
+            action_type = nil,
+            click_target_uid = nil,
+            drag_active = false,
+            drag_element_uid = nil
         },
         keyboard = {
             buttons = {}
         }
     },
-    drag_element_uid = nil,
     drag_original_space = nil,
-    click_element_uid = nil,
-    last_click_time = 0,
 }
 
 ---Clears the state
@@ -153,10 +161,25 @@ function state:clear()
     self.tweens = {}
     self.timers = {}
     self.current_player_uid = nil
-    self.drag_element_uid = nil
+    self.input = {
+        mouse = {
+            x = 0,
+            y = 0,
+            dx = 0,
+            dy = 0,
+            buttons = {},
+            last_click_pos = nil,
+            last_click_time = 0,
+            action_type = nil,
+            click_target_uid = nil,
+            drag_active = false,
+            drag_element_uid = nil
+        },
+        keyboard = {
+            buttons = {}
+        }
+    }
     self.drag_original_space = nil
-    self.click_element_uid = nil
-    self.last_click_time = 0
 end
 
 return state

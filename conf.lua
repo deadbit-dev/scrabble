@@ -20,6 +20,7 @@ end
 ---@field text TextConfig Text configuration settings
 ---@field hand HandConfig Hand configuration settings
 ---@field elements ElementsConfig Elements configuration settings
+---@field click ClickConfig Click configuration settings
 
 local conf = {}
 
@@ -142,80 +143,18 @@ conf.hand = {
 ---@field selection_lift_offset number Pixels to lift element when selected
 ---@field selection_animation_duration number Duration of selection animation in seconds
 ---@field double_click_threshold number Threshold for double click detection in seconds
+---@field drag_threshold_distance number Minimum distance in pixels to start drag
+---@field drag_threshold_time number Maximum time in seconds to distinguish click from drag
 conf.click = {
     selection_lift_offset = 20,
     selection_animation_duration = 0.2,
-    double_click_threshold = 0.3
+    double_click_threshold = 0.3,
+    drag_threshold_distance = 10,
+    drag_threshold_time = 0.15
 }
 
 ---@class ElementsConfig
----@field english table<string, { count: number, points: number }> English elements configuration
----@field russian table<string, { count: number, points: number }> Russian elements configuration
-conf.elements = {
-    english = {
-        ["A"] = { count = 9, points = 1 },
-        ["B"] = { count = 2, points = 3 },
-        ["C"] = { count = 2, points = 3 },
-        ["D"] = { count = 4, points = 2 },
-        ["E"] = { count = 12, points = 1 },
-        ["F"] = { count = 2, points = 4 },
-        ["G"] = { count = 3, points = 2 },
-        ["H"] = { count = 2, points = 4 },
-        ["I"] = { count = 9, points = 1 },
-        ["J"] = { count = 1, points = 8 },
-        ["K"] = { count = 1, points = 5 },
-        ["L"] = { count = 4, points = 1 },
-        ["M"] = { count = 2, points = 3 },
-        ["N"] = { count = 6, points = 1 },
-        ["O"] = { count = 8, points = 1 },
-        ["P"] = { count = 2, points = 3 },
-        ["Q"] = { count = 1, points = 10 },
-        ["R"] = { count = 6, points = 1 },
-        ["S"] = { count = 4, points = 1 },
-        ["T"] = { count = 6, points = 1 },
-        ["U"] = { count = 4, points = 1 },
-        ["V"] = { count = 2, points = 4 },
-        ["W"] = { count = 2, points = 4 },
-        ["X"] = { count = 1, points = 8 },
-        ["Y"] = { count = 2, points = 4 },
-        ["Z"] = { count = 1, points = 10 },
-        ["*"] = { count = 2, points = 0 }
-    },
-    russian = {
-        ["А"] = { count = 8, points = 1 },
-        ["Б"] = { count = 3, points = 3 },
-        ["В"] = { count = 8, points = 1 },
-        ["Г"] = { count = 3, points = 3 },
-        ["Д"] = { count = 4, points = 2 },
-        ["Е"] = { count = 8, points = 1 },
-        ["Ж"] = { count = 1, points = 5 },
-        ["З"] = { count = 1, points = 5 },
-        ["И"] = { count = 8, points = 1 },
-        ["Й"] = { count = 2, points = 4 },
-        ["К"] = { count = 4, points = 2 },
-        ["Л"] = { count = 4, points = 2 },
-        ["М"] = { count = 4, points = 2 },
-        ["Н"] = { count = 8, points = 1 },
-        ["О"] = { count = 8, points = 1 },
-        ["П"] = { count = 4, points = 2 },
-        ["Р"] = { count = 8, points = 1 },
-        ["С"] = { count = 8, points = 1 },
-        ["Т"] = { count = 8, points = 1 },
-        ["У"] = { count = 4, points = 3 },
-        ["Ф"] = { count = 1, points = 8 },
-        ["Х"] = { count = 1, points = 5 },
-        ["Ц"] = { count = 1, points = 5 },
-        ["Ч"] = { count = 1, points = 5 },
-        ["Ш"] = { count = 1, points = 8 },
-        ["Щ"] = { count = 1, points = 10 },
-        ["Ъ"] = { count = 1, points = 10 },
-        ["Ы"] = { count = 2, points = 4 },
-        ["Ь"] = { count = 3, points = 3 },
-        ["Э"] = { count = 1, points = 8 },
-        ["Ю"] = { count = 1, points = 8 },
-        ["Я"] = { count = 3, points = 3 },
-        ["*"] = { count = 2, points = 0 }
-    }
-}
+---@field [string] table<string, { count: number, points: number }> Elements configuration by alphabet
+conf.elements = {}
 
 return conf

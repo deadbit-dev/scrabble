@@ -16,6 +16,9 @@ local transition = {}
 function transition.to(game, elem_uid, duration, easing, to, onComplete)
     local state = game.state
     local element_data = element.get(game, elem_uid)
+    local current_space = element.get_space(game, elem_uid)
+
+    space.updateData(game, elem_uid, current_space, to)
 
     -- Создаем обертку для коллбэка, которая удалит переход
     local transition_index = #state.transitions + 1

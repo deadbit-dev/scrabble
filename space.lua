@@ -5,6 +5,29 @@ local element = import("element")
 
 local space = {}
 
+---Moves an element from one space to another
+---@param game Game
+---@param elem_uid number
+---@param from_space SpaceInfo
+---@param to_space SpaceInfo
+function space.updateData(game, elem_uid, from_space, to_space)
+    -- Remove element from source space
+    if from_space.type == "board" then
+        board.removeElement(game, from_space.data.x, from_space.data.y)
+    elseif from_space.type == "hand" then
+        hand.removeElem(game, from_space.data.hand_uid, from_space.data.index)
+    end
+    -- Note: screen space doesn't need removal as it's not tracked in state
+
+    -- Add element to target space
+    if to_space.type == "board" then
+        board.addElement(game, to_space.data.x, to_space.data.y, elem_uid)
+    elseif to_space.type == "hand" then
+        hand.addElem(game, to_space.data.hand_uid, to_space.data.index, elem_uid)
+    end
+    -- Note: screen space doesn't need addition as it's not tracked in state
+end
+
 ---Gets the world transform in screen space
 ---@param game Game
 ---@param x number
@@ -120,8 +143,12 @@ end
 ---@param elem_uid number
 ---@param space_info SpaceInfo
 function space.set_space(game, elem_uid, space_info)
+    local current_space = element.get_space(game, elem_uid)
+
     element.set_space(game, elem_uid, space_info)
     element.set_transform(game, elem_uid, space.getWorldTransformFromSpaceInfo(game, space_info))
+
+    space.updateData(game, elem_uid, current_space, space_info)
 end
 
 ---Creates a screen space info

@@ -31,7 +31,7 @@ function element.create(game, letter, x, y, width, height)
             }
         },
         letter = letter,
-        points = conf.elements.english[letter].points
+        points = conf.elements.latin[letter].points
     }
     return elem_uid
 end

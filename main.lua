@@ -13,16 +13,14 @@ local game = {
     state = import("state")
 }
 
-local logic = import("logic")
+local elements_conf_loader = import("elements_conf_loader")
+
+local engine = import("engine")
 local input = import("input")
-local rendering = import("rendering")
-local resources = import("resources")
 
 function love.load()
-    resources.load()
-    logic.init(game)
-    input.init(game)
-    rendering.init(game)
+    elements_conf_loader.load(game)
+    engine.init(game)
 end
 
 ---@diagnostic disable-next-line: duplicate-set-field
@@ -46,14 +44,11 @@ function love.mousereleased(x, y, button)
     input.mousereleased(game, x, y, button)
 end
 
-local lurker = require("lurker")
 function love.update(dt)
-    lurker.update()
-    logic.update(game, dt)
-    input.clear(game)
+    engine.update(game, dt)
 end
 
 ---@diagnostic disable-next-line: duplicate-set-field
 function love.draw()
-    rendering.draw(game)
+    engine.draw(game)
 end
