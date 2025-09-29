@@ -1,5 +1,3 @@
-local engine = import("engine")
-
 local tween = {}
 
 -- easing
@@ -328,14 +326,14 @@ local function update(game, tween_uid, dt)
     if not tween_data then
         return true -- Твин не найден, считаем завершенным
     end
-    
+
     -- Инициализируем initial если нужно
     if not tween_data.initial then
         tween_data.initial = copyTables({}, tween_data.target, tween_data.subject)
     end
-    
+
     tween_data.clock = tween_data.clock + dt
-    
+
     if tween_data.clock <= 0 then
         tween_data.clock = 0
         copyTables(tween_data.subject, tween_data.initial)
@@ -345,7 +343,8 @@ local function update(game, tween_uid, dt)
         copyTables(tween_data.subject, tween_data.target)
         return true
     else
-        performEasingOnSubject(tween_data.subject, tween_data.target, tween_data.initial, tween_data.clock, tween_data.duration, tween_data.easing)
+        performEasingOnSubject(tween_data.subject, tween_data.target, tween_data.initial, tween_data.clock,
+            tween_data.duration, tween_data.easing)
         return false
     end
 end
@@ -361,9 +360,9 @@ end
 function tween.create(game, duration, subject, target, easing, onComplete)
     easing = getEasingFunction(easing)
     checkNewParams(duration, subject, target, easing)
-    
-    local tween_uid = engine.generate_uid()
-    
+
+    local tween_uid = game.engine.generate_uid()
+
     local state = game.state
     state.tweens[tween_uid] = {
         uid = tween_uid,
@@ -375,7 +374,7 @@ function tween.create(game, duration, subject, target, easing, onComplete)
         initial = nil,
         onComplete = onComplete
     }
-    
+
     return tween_uid
 end
 
@@ -402,7 +401,7 @@ end
 ---Получает данные твина
 ---@param game Game
 ---@param tween_uid number
----@return TweenData|nil
+---@return Tween|nil
 function tween.get(game, tween_uid)
     local state = game.state
     return state.tweens[tween_uid]
@@ -414,7 +413,7 @@ end
 function tween.update(game, dt)
     local state = game.state
     local tweens_to_remove = {}
-    
+
     for tween_uid, tween_data in pairs(state.tweens) do
         local is_completed = update(game, tween_uid, dt)
         if is_completed then
@@ -425,7 +424,7 @@ function tween.update(game, dt)
             table.insert(tweens_to_remove, tween_uid)
         end
     end
-    
+
     -- Удаляем завершенные твины
     for _, tween_uid in ipairs(tweens_to_remove) do
         tween.remove(game, tween_uid)

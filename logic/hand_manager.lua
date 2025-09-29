@@ -1,15 +1,9 @@
-local log = import("log")
-local utils = import("utils")
-local engine = import("engine")
-local resources = import("resources")
-local element = import("element")
-
-local hand = {}
+local HandManager = {}
 
 ---@param game Game
-function hand.init(game)
+function HandManager.init(game)
     local state = game.state
-    local hand_uid = engine.generate_uid()
+    local hand_uid = game.engine.generate_uid()
     state.hands[hand_uid] = {
         uid = hand_uid,
         elem_uids = {},
@@ -23,24 +17,25 @@ end
 ---@param hand_uid number
 ---@param index number
 ---@param elem_uid number
-function hand.addElem(game, hand_uid, index, elem_uid)
+function HandManager.add_element(game, hand_uid, index, elem_uid)
     local state = game.state
+    local ElementsManager = game.logic.ElementsManager
+
     state.hands[hand_uid].elem_uids[index] = elem_uid
-    local elem = element.get(game, elem_uid)
-    elem.space = {
+    ElementsManager.set_space(game, elem_uid, {
         type = "hand",
         data = {
             hand_uid = hand_uid,
             index = index
         }
-    }
+    })
 end
 
 ---@param game Game
 ---@param hand_uid number
 ---@param index number
 ---@return number
-function hand.getElemUID(game, hand_uid, index)
+function HandManager.get_elem_uid(game, hand_uid, index)
     local state = game.state
     return state.hands[hand_uid].elem_uids[index]
 end
@@ -48,7 +43,7 @@ end
 ---@param game Game
 ---@param hand_uid number
 ---@return number|nil
-function hand.getEmptySlot(game, hand_uid)
+function HandManager.get_empty_slot(game, hand_uid)
     local state = game.state
     local hand_data = state.hands[hand_uid]
     for index = 1, hand_data.size do
@@ -62,7 +57,7 @@ end
 ---@param game Game
 ---@param hand_uid number
 ---@param index number
-function hand.removeElem(game, hand_uid, index)
+function HandManager.remove_element(game, hand_uid, index)
     local state = game.state
     state.hands[hand_uid].elem_uids[index] = nil
 end
@@ -70,10 +65,10 @@ end
 ---@param game Game
 ---@param hand_uid number
 ---@param elem_uid number
-function hand.getIndex(game, hand_uid, elem_uid)
+function HandManager.get_index(game, hand_uid, elem_uid)
     local state = game.state
-    for index, elem_uid in ipairs(state.hands[hand_uid].elem_uids) do
-        if elem_uid == elem_uid then
+    for index, uid in ipairs(state.hands[hand_uid].elem_uids) do
+        if elem_uid == uid then
             return index
         end
     end
@@ -83,7 +78,7 @@ end
 ---@param game Game
 ---@param hand_uid number
 ---@return boolean
-function hand.isEmpty(game, hand_uid)
+function HandManager.is_empty(game, hand_uid)
     local state = game.state
     local hand_data = state.hands[hand_uid]
     if not hand_data then
@@ -102,10 +97,10 @@ end
 ---@param hand_uid number
 ---@param index number
 ---@return Transform
-function hand.getWorldTransformInHandSpace(game, hand_uid, index)
+function HandManager.get_world_transform_in_hand_space(game, hand_uid, index)
     local conf = game.conf
     local state = game.state
-    local hand_transform = hand.getWorldTransform(game)
+    local hand_transform = HandManager.get_world_transform(game)
     local hand_data = state.hands[hand_uid]
     local availableWidth = hand_transform.width
     local availableHeight = hand_transform.height
@@ -143,8 +138,11 @@ end
 ---Calculates hand world transform with adaptive scaling
 ---@param game Game
 ---@return Transform
-function hand.getWorldTransform(game)
+function HandManager.get_world_transform(game)
     local conf = game.conf
+    local resources = game.resources
+    local Math = game.engine.Math
+
     local windowWidth = love.graphics.getWidth()
     local windowHeight = love.graphics.getHeight()
 
@@ -156,14 +154,14 @@ function hand.getWorldTransform(game)
     local minHandHeight = conf.hand.min_height
 
     -- NOTE: Position at bottom center of screen
-    local offset_from_center = utils.getPercentSize(windowWidth / 2, windowHeight / 2,
+    local offset_from_center = Math.get_percent_size(windowWidth / 2, windowHeight / 2,
         conf.hand.offset_from_center_percent)
     local x = (windowWidth - width) / 2
     local y = ((windowHeight - height) / 2) + offset_from_center
 
     -- NOTE: Ensure hand doesn't go below screen bottom
     local maxY = windowHeight - height
-    local offset_from_bottom_screen = utils.getPercentSize(windowWidth, windowHeight,
+    local offset_from_bottom_screen = Math.get_percent_size(windowWidth, windowHeight,
         conf.hand.min_offset_from_bottom_screen_percent)
     if y > maxY - offset_from_bottom_screen then
         y = maxY - offset_from_bottom_screen
@@ -202,20 +200,19 @@ end
 ---Updates the hand
 ---@param game Game
 ---@param dt number
-function hand.update(game, dt)
-    local conf = game.conf
+function HandManager.update(game, dt)
     local state = game.state
 
     for hand_uid, _ in pairs(state.hands) do
-        state.hands[hand_uid].transform = hand.getWorldTransform(game)
-        hand.updateElementsTransform(game, hand_uid)
+        state.hands[hand_uid].transform = HandManager.get_world_transform(game)
+        HandManager.update_elements_transform(game, hand_uid)
     end
 end
 
 ---Updates transforms for all elements in the hand
 ---@param game Game
 ---@param hand_uid number
-function hand.updateElementsTransform(game, hand_uid)
+function HandManager.update_elements_transform(game, hand_uid)
     local state = game.state
     local hand_data = state.hands[hand_uid]
 
@@ -223,13 +220,13 @@ function hand.updateElementsTransform(game, hand_uid)
         if elem_uid then
             local elem = state.elements[elem_uid]
             if elem then
-                elem.transform = hand.getWorldTransformInHandSpace(game, hand_uid, index)
+                elem.transform = HandManager.get_world_transform_in_hand_space(game, hand_uid, index)
             end
         end
     end
 end
 
-local function drawBg(conf, transform)
+local function draw_bg(conf, resources, transform)
     if (not resources.textures.hand) then
         return
     end
@@ -241,13 +238,14 @@ local function drawBg(conf, transform)
 end
 
 ---@param game Game
-function hand.draw(game)
+function HandManager.draw(game)
     local conf = game.conf
     local state = game.state
+    local resources = game.resources
 
-    for hand_uid, hand_data in pairs(state.hands) do
-        drawBg(conf, hand_data.transform)
+    for _, hand_data in pairs(state.hands) do
+        draw_bg(conf, resources, hand_data.transform)
     end
 end
 
-return hand
+return HandManager

@@ -1,15 +1,13 @@
-local cron = import("cron")
-
 local timer = {}
 
 ---Creates a timer
----@param state State
+---@param game Game
 ---@param duration number
 ---@param callback function
 ---@return table
-function timer.delay(state, duration, callback)
-    local timer = cron.after(duration, callback)
-    table.insert(state.timers, timer)
+function timer.delay(game, duration, callback)
+    local timer = game.engine.cron.after(duration, callback)
+    table.insert(game.state.timers, timer)
     return timer
 end
 

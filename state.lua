@@ -76,10 +76,10 @@
 ---@field buttons {[number]: ButtonState}
 ---@field last_click_pos {x: number, y: number}|nil
 ---@field last_click_time number
----@field action_type "single"|"double"|"drag"|nil
----@field click_target_uid number|nil
----@field drag_active boolean
----@field drag_element_uid number|nil
+---@field click_pos {x: number, y: number}|nil
+---@field is_drag boolean
+---@field is_click boolean
+---@field is_double_click boolean
 
 ---@class KeyboardState
 ---@field buttons {[string]: ButtonState}
@@ -87,6 +87,11 @@
 ---@class InputState
 ---@field mouse MouseState
 ---@field keyboard KeyboardState
+
+---@class DragState
+---@field active boolean
+---@field element_uid number|nil
+---@field original_space SpaceInfo|nil
 
 ---@class State
 ---@field cells {[number]: Cell}
@@ -97,7 +102,7 @@
 ---@field players {[number]: Player}
 ---@field transitions Transition[]
 ---@field tweens {[number]: Tween}
----@field drag_original_space SpaceInfo|nil
+---@field drag DragState
 ---@field selected_element_uid number|nil
 ---@field timers table[]
 ---@field current_player_uid number|nil
@@ -118,6 +123,11 @@ local state = {
     tweens = {},
     timers = {},
     current_player_uid = nil,
+    drag = {
+        active = false,
+        element_uid = nil,
+        original_space = nil
+    },
     input = {
         mouse = {
             x = 0,
@@ -127,16 +137,15 @@ local state = {
             buttons = {},
             last_click_pos = nil,
             last_click_time = 0,
-            action_type = nil,
-            click_target_uid = nil,
-            drag_active = false,
-            drag_element_uid = nil
+            click_pos = nil,
+            is_drag = false,
+            is_click = false,
+            is_double_click = false
         },
         keyboard = {
             buttons = {}
         }
     },
-    drag_original_space = nil,
 }
 
 ---Clears the state
@@ -161,6 +170,11 @@ function state:clear()
     self.tweens = {}
     self.timers = {}
     self.current_player_uid = nil
+    self.drag = {
+        active = false,
+        element_uid = nil,
+        original_space = nil
+    }
     self.input = {
         mouse = {
             x = 0,
@@ -170,16 +184,15 @@ function state:clear()
             buttons = {},
             last_click_pos = nil,
             last_click_time = 0,
-            action_type = nil,
-            click_target_uid = nil,
-            drag_active = false,
-            drag_element_uid = nil
+            click_pos = nil,
+            is_drag = false,
+            is_click = false,
+            is_double_click = false
         },
         keyboard = {
             buttons = {}
         }
     }
-    self.drag_original_space = nil
 end
 
 return state

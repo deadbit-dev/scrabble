@@ -1,54 +1,70 @@
--- TODO: hotswap resources
--- TODO: move code to src directory
--- TODO: input state and handle function checks state where needed
+-- NOTE: setup import and postswap [DEPRICATED]
+-- require("hotreload")
 
--- NOTE: setup import and postswap
-require("hotreload")
+
+local OrderedMap = require("modules.orderedmap")
 
 ---@class Game
 ---@field conf Config
 ---@field state State
+---@field modules table
 local game = {
-    conf = import("conf"),
-    state = import("state")
+    conf = require("conf"),
+    resources = require("resources"),
+    state = require("state"),
+    engine = require("engine"),
+    logic = OrderedMap({
+        require("logic.board"),
+        require("logic.cell_manager"),
+        require("logic.player_manager"),
+        require("logic.hand_manager"),
+        require("logic.element_manager"),
+        require("logic.selection"),
+        require("logic.drag"),
+        require("logic.drop"),
+        require("logic.transition_manager"),
+        require("logic.space"),
+        require("logic.cheats"),
+        require("logic.tests"),
+    })
 }
 
-local elements_conf_loader = import("elements_conf_loader")
-
-local engine = import("engine")
-local input = import("input")
-
 function love.load()
-    elements_conf_loader.load(game)
-    engine.init(game)
+    game.engine.init(game)
 end
 
 ---@diagnostic disable-next-line: duplicate-set-field
 function love.keypressed(key)
-    input.keypressed(game, key)
+    game.engine.Input.keypressed(game.state, key)
 end
 
 function love.keyreleased(key)
-    input.keyreleased(game, key)
+    game.engine.Input.keyreleased(game.state, key)
 end
 
 function love.mousepressed(x, y, button)
-    input.mousepressed(game, x, y, button)
+    game.engine.Input.mousepressed(game.state, x, y, button)
 end
 
 function love.mousemoved(x, y, dx, dy)
-    input.mousemoved(game, x, y, dx, dy)
+    game.engine.Input.mousemoved(game.state, x, y, dx, dy)
 end
 
 function love.mousereleased(x, y, button)
-    input.mousereleased(game, x, y, button)
+    game.engine.Input.mousereleased(game.state, x, y, button)
 end
 
 function love.update(dt)
-    engine.update(game, dt)
+    if (not game.engine.is_ready) then
+        return
+    end
+    game.engine.update(game, dt)
 end
 
 ---@diagnostic disable-next-line: duplicate-set-field
 function love.draw()
-    engine.draw(game)
+    if (not game.engine.is_ready) then
+        return
+    end
+    game.engine.draw(game)
 end

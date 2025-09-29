@@ -1,29 +1,27 @@
-local log = import("log")
-local board = import("board")
-local hand = import("hand")
-local element = import("element")
-
-local space = {}
+local Space = {}
 
 ---Moves an element from one space to another
 ---@param game Game
 ---@param elem_uid number
 ---@param from_space SpaceInfo
 ---@param to_space SpaceInfo
-function space.updateData(game, elem_uid, from_space, to_space)
+function Space.updateData(game, elem_uid, from_space, to_space)
+    local Board = game.logic.Board
+    local HandManager = game.logic.HandManager
+
     -- Remove element from source space
     if from_space.type == "board" then
-        board.removeElement(game, from_space.data.x, from_space.data.y)
+        Board.remove_element(game, from_space.data.x, from_space.data.y)
     elseif from_space.type == "hand" then
-        hand.removeElem(game, from_space.data.hand_uid, from_space.data.index)
+        HandManager.remove_element(game, from_space.data.hand_uid, from_space.data.index)
     end
     -- Note: screen space doesn't need removal as it's not tracked in state
 
     -- Add element to target space
     if to_space.type == "board" then
-        board.addElement(game, to_space.data.x, to_space.data.y, elem_uid)
+        Board.add_element(game, to_space.data.x, to_space.data.y, elem_uid)
     elseif to_space.type == "hand" then
-        hand.addElem(game, to_space.data.hand_uid, to_space.data.index, elem_uid)
+        HandManager.add_element(game, to_space.data.hand_uid, to_space.data.index, elem_uid)
     end
     -- Note: screen space doesn't need addition as it's not tracked in state
 end
@@ -33,7 +31,7 @@ end
 ---@param x number
 ---@param y number
 ---@return Transform
-function space.getWorldTransformInScreenSpace(game, x, y)
+function Space.get_world_transform_in_screen_space(game, x, y)
     local conf = game.conf
     return {
         x = x,
@@ -48,14 +46,18 @@ end
 ---@param game Game
 ---@param spaceInfo SpaceInfo
 ---@return Transform
-function space.getWorldTransformFromSpaceInfo(game, spaceInfo)
+function Space.get_world_transform_from_space_info(game, spaceInfo)
+    local Board = game.logic.Board
+    local HandManager = game.logic.HandManager
+
     -- NOTE: screen is default space info, nothing converts
-    local worldTransform = space.getWorldTransformInScreenSpace(game, spaceInfo.data.x, spaceInfo.data.y)
+    local worldTransform = Space.get_world_transform_in_screen_space(game, spaceInfo.data.x, spaceInfo.data.y)
 
     if (spaceInfo.type == "board") then
-        worldTransform = board.getWorldTransformInBoardSpace(game, spaceInfo.data.x, spaceInfo.data.y)
+        worldTransform = Board.get_world_transform_in_board_space(game, spaceInfo.data.x, spaceInfo.data.y)
     elseif (spaceInfo.type == "hand") then
-        worldTransform = hand.getWorldTransformInHandSpace(game, spaceInfo.data.hand_uid, spaceInfo.data.index)
+        worldTransform = HandManager.get_world_transform_in_hand_space(game, spaceInfo.data.hand_uid,
+            spaceInfo.data.index)
     end
 
     return worldTransform
@@ -66,16 +68,14 @@ end
 ---@param x number
 ---@param y number
 ---@return SpaceType
-function space.getSpaceTypeByPosition(game, x, y)
+function Space.get_space_type_by_position(game, x, y)
     -- NOTE: Check if point is in board area
-    log.log("x: " .. x .. ", y: " .. y)
-    print("isInBoardArea: ", space.isInBoardArea(game, x, y))
-    if space.isInBoardArea(game, x, y) then
+    if Space.is_in_board_area(game, x, y) then
         return "board"
     end
 
     -- NOTE: Check if point is in hand area
-    if space.isInHandArea(game, x, y) then
+    if Space.is_in_hand_area(game, x, y) then
         return "hand"
     end
 
@@ -88,8 +88,10 @@ end
 ---@param x number
 ---@param y number
 ---@return boolean
-function space.isInBoardArea(game, x, y)
-    local board_transform = board.getWorldTransform(game)
+function Space.is_in_board_area(game, x, y)
+    local Board = game.logic.Board
+
+    local board_transform = Board.get_world_transform(game)
     return x >= board_transform.x and x <= board_transform.x + board_transform.width and
         y >= board_transform.y and y <= board_transform.y + board_transform.height
 end
@@ -99,8 +101,10 @@ end
 ---@param x number
 ---@param y number
 ---@return boolean
-function space.isInHandArea(game, x, y)
-    local hand_transform = hand.getWorldTransform(game)
+function Space.is_in_hand_area(game, x, y)
+    local HandManager = game.logic.HandManager
+
+    local hand_transform = HandManager.get_world_transform(game)
     return x >= hand_transform.x and x <= hand_transform.x + hand_transform.width and
         y >= hand_transform.y and y <= hand_transform.y + hand_transform.height
 end
@@ -110,15 +114,17 @@ end
 ---@param x number
 ---@param y number
 ---@return {x: number, y: number}|nil
-function space.getBoardPosByWorldPos(game, x, y)
+function Space.get_board_pos_by_world_pos(game, x, y)
+    local conf = game.conf
+    local Board = game.logic.Board
+
     -- Check if point is within board boundaries
-    if not space.isInBoardArea(game, x, y) then
+    if not Space.is_in_board_area(game, x, y) then
         return nil
     end
 
-    local conf = game.conf
-    local layout = board.getLayout(conf)
-    local transform = board.getWorldTransform(game)
+    local layout = Board.get_layout(game)
+    local transform = Board.get_world_transform(game)
 
     -- Calculate relative position within board area
     local relX = x - (transform.x + layout.fieldGaps.left)
@@ -142,20 +148,21 @@ end
 ---@param game Game
 ---@param elem_uid number
 ---@param space_info SpaceInfo
-function space.set_space(game, elem_uid, space_info)
-    local current_space = element.get_space(game, elem_uid)
+function Space.set_space(game, elem_uid, space_info)
+    local ElementsManager = game.logic.ElementsManager
+    local current_space = ElementsManager.get_space(game, elem_uid)
 
-    element.set_space(game, elem_uid, space_info)
-    element.set_transform(game, elem_uid, space.getWorldTransformFromSpaceInfo(game, space_info))
+    ElementsManager.set_space(game, elem_uid, space_info)
+    ElementsManager.set_transform(game, elem_uid, Space.get_world_transform_from_space_info(game, space_info))
 
-    space.updateData(game, elem_uid, current_space, space_info)
+    Space.updateData(game, elem_uid, current_space, space_info)
 end
 
 ---Creates a screen space info
 ---@param x number
 ---@param y number
 ---@return SpaceInfo
-function space.createScreenSpace(x, y)
+function Space.create_screen_space(x, y)
     return {
         type = "screen",
         data = {
@@ -169,7 +176,7 @@ end
 ---@param x number
 ---@param y number
 ---@return SpaceInfo
-function space.createBoardSpace(x, y)
+function Space.create_board_space(x, y)
     return {
         type = "board",
         data = {
@@ -183,7 +190,7 @@ end
 ---@param hand_uid number
 ---@param index number
 ---@return SpaceInfo
-function space.createHandSpace(hand_uid, index)
+function Space.create_hand_space(hand_uid, index)
     return {
         type = "hand",
         data = {
@@ -197,7 +204,7 @@ end
 ---@param space1 SpaceInfo
 ---@param space2 SpaceInfo
 ---@return boolean
-function space.equals(space1, space2)
+function Space.equals(space1, space2)
     if space1.type ~= space2.type then
         return false
     end
@@ -211,4 +218,4 @@ function space.equals(space1, space2)
     return false
 end
 
-return space
+return Space

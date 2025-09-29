@@ -1,16 +1,31 @@
-local resources = import("resources")
-local cell = import("cell")
-local element = import("element")
+local Board = {}
 
-local board = {}
+local Tests = require("../tests")
+
+---Initializes the game board by creating empty cells with multipliers
+---@param game Game
+function Board.init(game)
+    local conf = game.conf
+    local state = game.state
+    local cell_manager = game.logic.cell_manager
+
+    for i = 1, conf.field.size do
+        state.board.cell_uids[i] = {}
+        state.board.elem_uids[i] = {}
+        for j = 1, conf.field.size do
+            Board.add_cell(game, i, j, cell_manager.create(game, conf.field.multipliers[i][j]))
+        end
+    end
+
+    Tests.add_element_to_board(game)
+end
 
 ---@param game Game
 ---@param x number
 ---@param y number
 ---@return number
-function board.getBoardCellUID(game, x, y)
-    local state = game.state
-    return state.board.cell_uids[x][y]
+function Board.get_board_cell_uid(game, x, y)
+    return game.state.board.cell_uids[x][y]
 end
 
 ---Sets a cell on the board
@@ -18,16 +33,15 @@ end
 ---@param x number
 ---@param y number
 ---@param cell_uid number
-function board.addCell(game, x, y, cell_uid)
-    local state = game.state
-    state.board.cell_uids[x][y] = cell_uid
+function Board.add_cell(game, x, y, cell_uid)
+    game.state.board.cell_uids[x][y] = cell_uid
 end
 
 ---@param game Game
 ---@param x number
 ---@param y number
 ---@return number
-function board.getBoardElemUID(game, x, y)
+function Board.get_board_elem_uid(game, x, y)
     local state = game.state
     return state.board.elem_uids[x][y]
 end
@@ -37,24 +51,25 @@ end
 ---@param x number
 ---@param y number
 ---@param elem_uid number
-function board.addElement(game, x, y, elem_uid)
+function Board.add_element(game, x, y, elem_uid)
     local state = game.state
+    local element_manager = game.logic.element_manager
+
     state.board.elem_uids[x][y] = elem_uid
-    local elem = element.get(game, elem_uid)
-    elem.space = {
+    element_manager.set_space(game, elem_uid, {
         type = "board",
         data = {
             x = x,
             y = y
         }
-    }
+    })
 end
 
 ---Removes an element from the board
 ---@param game Game
 ---@param x number
 ---@param y number
-function board.removeElement(game, x, y)
+function Board.remove_element(game, x, y)
     local state = game.state
     local elem_uid = state.board.elem_uids[x][y]
     if elem_uid then
@@ -62,24 +77,11 @@ function board.removeElement(game, x, y)
     end
 end
 
----Initializes the game board by creating empty cells with multipliers
----@param game Game
-function board.init(game)
-    local conf = game.conf
-    local state = game.state
-    for i = 1, conf.field.size do
-        state.board.cell_uids[i] = {}
-        state.board.elem_uids[i] = {}
-        for j = 1, conf.field.size do
-            board.addCell(game, i, j, cell.create(game, conf.field.multipliers[i][j]))
-        end
-    end
-end
-
 ---Calculates board cell layout
----@param conf Config
+---@param game Game
 ---@return table containing cellSize, cellGap, and fieldGaps
-function board.getLayout(conf)
+function Board.get_layout(game)
+    local conf = game.conf
     local windowWidth = love.graphics.getWidth()
     local windowHeight = love.graphics.getHeight()
 
@@ -121,7 +123,7 @@ end
 ---Calculates board world transform based on window size and configuration
 ---@param game Game
 ---@return Transform
-function board.getWorldTransform(game)
+function Board.get_world_transform(game)
     local conf = game.conf
     local windowWidth = love.graphics.getWidth()
     local windowHeight = love.graphics.getHeight()
@@ -178,22 +180,24 @@ end
 ---Updates the board
 ---@param game Game
 ---@param dt number
-function board.update(game, dt)
-    game.state.board.transform = board.getWorldTransform(game)
-    board.updateElementsTransform(game)
+function Board.update(game, dt)
+    game.state.board.transform = Board.get_world_transform(game)
+    Board.update_elements_transform(game)
 end
 
 ---Updates transforms for all elements on the board
 ---@param game Game
-function board.updateElementsTransform(game)
+function Board.update_elements_transform(game)
     local conf = game.conf
+    local element_manager = game.logic.element_manager
+
     for j = 1, conf.field.size do
         for i = 1, conf.field.size do
-            local element_uid = board.getBoardElemUID(game, i, j)
+            local element_uid = Board.get_board_elem_uid(game, i, j)
             if element_uid then
-                local elem = element.get(game, element_uid)
-                if elem then
-                    elem.transform = board.getWorldTransformInBoardSpace(game, i, j)
+                local element_data = element_manager.get_state(game, element_uid)
+                if element_data then
+                    element_data.transform = Board.get_world_transform_in_board_space(game, i, j)
                 end
             end
         end
@@ -203,7 +207,7 @@ end
 ---Draws the board background
 ---@param conf Config
 ---@param transform Transform
-local function drawBg(conf, transform)
+local function draw_bg(conf, resources, transform)
     if (not resources.textures.field) then
         return
     end
@@ -214,20 +218,23 @@ local function drawBg(conf, transform)
         transform.height / resources.textures.field:getHeight())
 end
 
-function board.draw(game)
+function Board.draw(game)
     local conf = game.conf
     local state = game.state
+    local resources = game.resources
+    local cell_manager = game.logic.cell_manager
 
-    drawBg(conf, state.board.transform)
+    draw_bg(conf, resources, state.board.transform)
 
+    -- TODO: separate cells rendering too
     for i = 1, conf.field.size do
         for j = 1, conf.field.size do
-            local cell_uid = board.getBoardCellUID(game, j, i)
+            local cell_uid = Board.get_board_cell_uid(game, j, i)
             if cell_uid then
-                local cell_data = cell.get(game, cell_uid)
-                local transform = board.getWorldTransformInBoardSpace(game, j, i)
+                local cell_data = cell_manager.get(game, cell_uid)
+                local transform = Board.get_world_transform_in_board_space(game, j, i)
                 local cell_size = math.min(transform.width, transform.height)
-                cell.draw(game, transform.x, transform.y, cell_size, cell_data)
+                cell_manager.cell_draw(game, transform.x, transform.y, cell_size, cell_data)
             end
         end
     end
@@ -237,10 +244,9 @@ end
 ---@param x number
 ---@param y number
 ---@return Transform
-function board.getWorldTransformInBoardSpace(game, x, y)
-    local conf = game.conf
-    local layout = board.getLayout(conf)
-    local transform = board.getWorldTransform(game)
+function Board.get_world_transform_in_board_space(game, x, y)
+    local layout = Board.get_layout(game)
+    local transform = Board.get_world_transform(game)
     return {
         x = transform.x + layout.fieldGaps.left +
             (x - 1) * (layout.cellSize + layout.cellGap),
@@ -251,4 +257,4 @@ function board.getWorldTransformInBoardSpace(game, x, y)
     }
 end
 
-return board
+return Board

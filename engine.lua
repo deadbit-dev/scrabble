@@ -1,47 +1,50 @@
-local resources = import("resources")
-local input = import("input")
-local dev = import("dev")
-local logic = import("logic")
-local rendering = import("rendering")
+local Engine = {}
 
-
-local engine = {}
-
-function engine.init(game)
+function Engine.init(game)
     _G.uid_counter = 0
+    game.resources.load()
 
-    resources.load()
-    logic.init(game)
-    input.init(game)
-    rendering.init(game)
+    game.engine.Input.init(game)
+
+    for _, module in ipairs(game.logic) do
+        if (module["init"]) then
+            module.init(game)
+        end
+    end
+
+    Engine.set_cursor(game.resources.imageData.cursor)
 end
 
-local lurker = require("lurker")
-function engine.update(game, dt)
-    lurker.update()
-    input.update(game, dt)
-    dev.update(game, dt)
-    logic.update(game, dt)
-    input.clear(game)
+function Engine.update(game, dt)
+    -- game.engine.lurker.update()
+
+    game.engine.Input.update(game, dt)
+
+    for _, module in ipairs(game.logic) do
+        if (module["update"]) then
+            module.update(game, dt)
+        end
+    end
+
+    game.engine.Input.clear(game)
 end
 
-function engine.draw(game)
-    rendering.draw(game)
+function Engine.draw(game)
+    love.graphics.clear(game.conf.colors.background)
+
+    for _, module in ipairs(game.logic) do
+        if (module["draw"]) then
+            module.draw(game)
+        end
+    end
 end
 
 ---Restarts the game
 ---@param game Game
-function engine.restart(game)
+function Engine.restart(game)
     ---@diagnostic disable-next-line: undefined-field
     game.state:clear()
-    engine.init(game)
+    Engine.init(game)
 end
 
----Generates a unique identifier
----@return number
-function engine.generate_uid()
-    _G.uid_counter = _G.uid_counter + 1
-    return _G.uid_counter
-end
-
-return engine
+return Engine

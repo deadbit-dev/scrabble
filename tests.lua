@@ -1,29 +1,25 @@
-local board = import("board")
-local element = import("element")
-local transition = import("transition")
-
-local tests = {}
+local Tests = {}
 
 ---Adds test elements to the board
 ---@param game Game
-function tests.addElementToBoard(game)
-    board.addElement(game, 6, 8, element.create(game, "H"))
-    board.addElement(game, 7, 8, element.create(game, "E"))
-    board.addElement(game, 8, 8, element.create(game, "L"))
-    board.addElement(game, 9, 8, element.create(game, "L"))
-    board.addElement(game, 10, 8, element.create(game, "O"))
-    board.addElement(game, 10, 7, element.create(game, "W"))
-    board.addElement(game, 10, 9, element.create(game, "R"))
-    board.addElement(game, 10, 10, element.create(game, "L"))
-    board.addElement(game, 10, 11, element.create(game, "D"))
+function Tests.add_element_to_board(game)
+    game.logic.board.add_element(game, 6, 8, game.logic.element_manager.create(game, "H"))
+    game.logic.board.add_element(game, 7, 8, game.logic.element_manager.create(game, "E"))
+    game.logic.board.add_element(game, 8, 8, game.logic.element_manager.create(game, "L"))
+    game.logic.board.add_element(game, 9, 8, game.logic.element_manager.create(game, "L"))
+    game.logic.board.add_element(game, 10, 8, game.logic.element_manager.create(game, "O"))
+    game.logic.board.add_element(game, 10, 7, game.logic.element_manager.create(game, "W"))
+    game.logic.board.add_element(game, 10, 9, game.logic.element_manager.create(game, "R"))
+    game.logic.board.add_element(game, 10, 10, game.logic.element_manager.create(game, "L"))
+    game.logic.board.add_element(game, 10, 11, game.logic.element_manager.create(game, "D"))
 end
 
-function tests.transition(game)
-    local elem_uid = element.create(game, "A")
+function Tests.transition(game)
+    local elem_uid = game.logic.element_manager.create(game, "A")
     local hand_uid = game.state.players[game.state.current_player_uid].hand_uid
-    transition.poolToHand(game, elem_uid, hand_uid, 1, function()
-        transition.handToBoard(game, hand_uid, elem_uid, 1, 1, 15)
+    game.logic.transition_manager.poolToHand(game, elem_uid, hand_uid, 1, function()
+        game.logic.transition_manager.handToBoard(game, hand_uid, elem_uid, 1, 1, 15)
     end)
 end
 
-return tests
+return Tests
