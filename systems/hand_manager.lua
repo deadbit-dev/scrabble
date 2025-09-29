@@ -23,7 +23,7 @@ function HandManager.add_element(game, hand_uid, index, elem_uid)
 
     state.hands[hand_uid].elem_uids[index] = elem_uid
     ElementsManager.set_space(game, elem_uid, {
-        type = "hand",
+        type = SpaceType.HAND,
         data = {
             hand_uid = hand_uid,
             index = index

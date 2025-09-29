@@ -14,14 +14,12 @@ function Drop.update(game, dt)
     if (not Input.is_drag(state) and state.drag.element_uid ~= nil) then
         local mouse_pos = Input.get_mouse_pos(state)
         local space_type = Space.get_space_type_by_position(game, mouse_pos.x, mouse_pos.y)
-        Log.log("[DROP ELEMENT]: space_type: " .. space_type)
-        if (space_type == "board") then
+        if (space_type == SpaceType.BOARD) then
             local board_pos = Space.get_board_pos_by_world_pos(game, mouse_pos.x, mouse_pos.y)
-            Log.log("[DROP ELEMENT TO BOARD]: board_pos: " .. board_pos.x .. ", " .. board_pos.y)
             TransitionsManager.to(game, state.drag.element_uid, 0.7, Tween.easing.inOutCubic,
                 Space.create_board_space(board_pos.x, board_pos.y)
             )
-        elseif (space_type == "hand") then
+        elseif (space_type == SpaceType.HAND) then
             local hand_uid = state.players[state.current_player_uid].hand_uid
             local empty_slot = HandManager.get_empty_slot(game, hand_uid)
 
@@ -50,11 +48,11 @@ function Drop.update(game, dt)
                 Log.warn("[DROP ELEMENT TO HAND]: HAND IS FULL! Returning to original position.")
                 if state.drag.original_space then
                     Log.log("[DROP ELEMENT TO ORIGINAL POSITION]: type: " .. state.drag.original_Space.type)
-                    if state.drag.original_Space.type == "board" then
+                    if state.drag.original_Space.type == SpaceType.BOARD then
                         TransitionsManager.to(game, state.drag.element_uid, 0.7, Tween.easing.inOutCubic,
                             Space.create_board_space(state.drag.original_Space.data.x, state.drag.original_Space.data.y)
                         )
-                    elseif state.drag.original_Space.type == "hand" then
+                    elseif state.drag.original_Space.type == SpaceType.HAND then
                         TransitionsManager.to(game, state.drag.element_uid, 0.7, Tween.easing.inOutCubic,
                             Space.create_hand_space(state.drag.original_Space.data.hand_uid,
                                 state.drag.original_Space.data.index)

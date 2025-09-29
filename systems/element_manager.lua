@@ -94,7 +94,7 @@ function ElementManager.create(game, letter, x, y, width, height)
             z_index = 1
         },
         space = {
-            type = "screen",
+            type = SpaceType.SCREEN,
             data = {
                 x = x or 0,
                 y = y or 0

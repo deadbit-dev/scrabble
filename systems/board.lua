@@ -1,23 +1,85 @@
-local Board = {}
-
 local Tests = require("../tests")
+
+local Board = class("Board")
+
+function Board:constructor(cell_manager, element_manager)
+    self.cell_manager = cell_manager
+    self.element_manager = element_manager
+end
 
 ---Initializes the game board by creating empty cells with multipliers
 ---@param game Game
 function Board.init(game)
-    local conf = game.conf
-    local state = game.state
-    local cell_manager = game.logic.cell_manager
-
-    for i = 1, conf.field.size do
-        state.board.cell_uids[i] = {}
-        state.board.elem_uids[i] = {}
-        for j = 1, conf.field.size do
-            Board.add_cell(game, i, j, cell_manager.create(game, conf.field.multipliers[i][j]))
+    for i = 1, game.conf.field.size do
+        game.state.board.cell_uids[i] = {}
+        game.state.board.elem_uids[i] = {}
+        for j = 1, game.conf.field.size do
+            Board.add_cell(game, i, j, self.cell_manager.create(game, game.conf.field.multipliers[i][j]))
         end
     end
 
-    Tests.add_element_to_board(game)
+    -- Tests.add_element_to_board(game)
+end
+
+---Updates transforms for all elements on the board
+---@param game Game
+local function update_elements_transform(game)
+    local conf = game.conf
+
+    for j = 1, conf.field.size do
+        for i = 1, conf.field.size do
+            local element_uid = Board.get_board_elem_uid(game, i, j)
+            if element_uid then
+                local element_data = self.element_manager.get_state(game, element_uid)
+                if element_data then
+                    element_data.transform = Board.get_world_transform_in_board_space(game, i, j)
+                end
+            end
+        end
+    end
+end
+
+---Updates the board
+---@param game Game
+---@param dt number
+function Board.update(game, dt)
+    game.state.board.transform = Board.get_world_transform(game)
+    Board.update_elements_transform(game)
+end
+
+---Draws the board background
+---@param conf Config
+---@param transform Transform
+local function draw_bg(conf, resources, transform)
+    if (not resources.textures.field) then
+        return
+    end
+
+    love.graphics.setColor(conf.colors.black)
+    love.graphics.draw(resources.textures.field, transform.x, transform.y, 0,
+        transform.width / resources.textures.field:getWidth(),
+        transform.height / resources.textures.field:getHeight())
+end
+
+function Board.draw(game)
+    local conf = game.conf
+    local state = game.state
+    local resources = game.resources
+
+    draw_bg(conf, resources, state.board.transform)
+
+    -- TODO: separate cells rendering too
+    for i = 1, conf.field.size do
+        for j = 1, conf.field.size do
+            local cell_uid = Board.get_board_cell_uid(game, j, i)
+            if cell_uid then
+                local cell_data = cell_manager.get(game, cell_uid)
+                local transform = Board.get_world_transform_in_board_space(game, j, i)
+                local cell_size = math.min(transform.width, transform.height)
+                cell_manager.cell_draw(game, transform.x, transform.y, cell_size, cell_data)
+            end
+        end
+    end
 end
 
 ---@param game Game
@@ -42,8 +104,7 @@ end
 ---@param y number
 ---@return number
 function Board.get_board_elem_uid(game, x, y)
-    local state = game.state
-    return state.board.elem_uids[x][y]
+    return game.state.board.elem_uids[x][y]
 end
 
 ---Sets an element on the board
@@ -52,12 +113,9 @@ end
 ---@param y number
 ---@param elem_uid number
 function Board.add_element(game, x, y, elem_uid)
-    local state = game.state
-    local element_manager = game.logic.element_manager
-
-    state.board.elem_uids[x][y] = elem_uid
-    element_manager.set_space(game, elem_uid, {
-        type = "board",
+    game.state.board.elem_uids[x][y] = elem_uid
+    ElementManager.set_space(game, elem_uid, {
+        type = SpaceType.BOARD,
         data = {
             x = x,
             y = y
@@ -66,14 +124,13 @@ function Board.add_element(game, x, y, elem_uid)
 end
 
 ---Removes an element from the board
----@param game Game
+---@param state State
 ---@param x number
 ---@param y number
 function Board.remove_element(game, x, y)
-    local state = game.state
-    local elem_uid = state.board.elem_uids[x][y]
+    local elem_uid = game.state.board.elem_uids[x][y]
     if elem_uid then
-        state.board.elem_uids[x][y] = nil
+        game.state.board.elem_uids[x][y] = nil
     end
 end
 
@@ -82,6 +139,7 @@ end
 ---@return table containing cellSize, cellGap, and fieldGaps
 function Board.get_layout(game)
     local conf = game.conf
+
     local windowWidth = love.graphics.getWidth()
     local windowHeight = love.graphics.getHeight()
 
@@ -125,6 +183,7 @@ end
 ---@return Transform
 function Board.get_world_transform(game)
     local conf = game.conf
+
     local windowWidth = love.graphics.getWidth()
     local windowHeight = love.graphics.getHeight()
 
@@ -175,69 +234,6 @@ function Board.get_world_transform(game)
         height = boardHeight,
         z_index = 0
     }
-end
-
----Updates the board
----@param game Game
----@param dt number
-function Board.update(game, dt)
-    game.state.board.transform = Board.get_world_transform(game)
-    Board.update_elements_transform(game)
-end
-
----Updates transforms for all elements on the board
----@param game Game
-function Board.update_elements_transform(game)
-    local conf = game.conf
-    local element_manager = game.logic.element_manager
-
-    for j = 1, conf.field.size do
-        for i = 1, conf.field.size do
-            local element_uid = Board.get_board_elem_uid(game, i, j)
-            if element_uid then
-                local element_data = element_manager.get_state(game, element_uid)
-                if element_data then
-                    element_data.transform = Board.get_world_transform_in_board_space(game, i, j)
-                end
-            end
-        end
-    end
-end
-
----Draws the board background
----@param conf Config
----@param transform Transform
-local function draw_bg(conf, resources, transform)
-    if (not resources.textures.field) then
-        return
-    end
-
-    love.graphics.setColor(conf.colors.black)
-    love.graphics.draw(resources.textures.field, transform.x, transform.y, 0,
-        transform.width / resources.textures.field:getWidth(),
-        transform.height / resources.textures.field:getHeight())
-end
-
-function Board.draw(game)
-    local conf = game.conf
-    local state = game.state
-    local resources = game.resources
-    local cell_manager = game.logic.cell_manager
-
-    draw_bg(conf, resources, state.board.transform)
-
-    -- TODO: separate cells rendering too
-    for i = 1, conf.field.size do
-        for j = 1, conf.field.size do
-            local cell_uid = Board.get_board_cell_uid(game, j, i)
-            if cell_uid then
-                local cell_data = cell_manager.get(game, cell_uid)
-                local transform = Board.get_world_transform_in_board_space(game, j, i)
-                local cell_size = math.min(transform.width, transform.height)
-                cell_manager.cell_draw(game, transform.x, transform.y, cell_size, cell_data)
-            end
-        end
-    end
 end
 
 ---@param game Game

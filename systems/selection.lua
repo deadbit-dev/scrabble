@@ -163,7 +163,7 @@ local function handleEmptyBoardClick(game, mouse_pos)
     -- Если есть выбранный элемент в руке, перемещаем его на поле
     if state.selected_element_uid then
         local selected_elem = ElementsManager.get_state(game, state.selected_element_uid)
-        if selected_elem and selected_elem.space.type == "hand" then
+        if selected_elem and selected_elem.space.type == SpaceType.HAND then
             -- Получаем позицию на поле
             local board_pos = Space.get_board_pos_by_world_pos(game, mouse_pos.x, mouse_pos.y)
             if board_pos then
@@ -215,11 +215,11 @@ function Selection.update(game, dt)
 
         if clicked_elem then
             -- Кликнули по элементу
-            if clicked_elem.space.type == "hand" then
+            if clicked_elem.space.type == SpaceType.HAND then
                 if Input.is_click(state) then
                     handle_hand_element_click(game, clicked_elem)
                 end
-            elseif clicked_elem.space.type == "board" then
+            elseif clicked_elem.space.type == SpaceType.BOARD then
                 if Input.is_double_click(state) then
                     handle_board_element_click(game, clicked_elem)
                 end

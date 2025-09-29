@@ -36,9 +36,9 @@ local function start_drag(game)
         data = data
     }
 
-    if type == "hand" then
+    if type == SpaceType.HAND then
         HandManager.remove_element(game, data.hand_uid, data.index)
-    elseif type == "board" then
+    elseif type == SpaceType.BOARD then
         Board.remove_element(game, data.x, data.y)
     end
 
@@ -96,19 +96,16 @@ function Drag.update(game, dt)
 
     -- Начинаем драг когда input определяет это
     if Input.is_drag(state) and not state.drag.active then
-        print("Starting drag")
         start_drag(game)
     end
 
     -- Обновляем позицию во время драга
     if state.drag.active then
-        print("Updating drag")
         update_drag(game, dt)
     end
 
     -- Завершаем драг когда input сообщает об окончании
     if not Input.is_drag(state) and state.drag.active then
-        print("Ending drag")
         end_drag(game)
     end
 end

@@ -1,3 +1,7 @@
+local Space = require("../modules.space")
+local Tween = require("../modules.tween")
+local ElementsManager = require("elements_manager")
+
 local TransitionManager = {}
 
 ---Creates a transition
@@ -10,8 +14,6 @@ local TransitionManager = {}
 ---@return number
 function TransitionManager.to(game, elem_uid, duration, easing, to, onComplete)
     local state = game.state
-    local ElementsManager = game.logic.ElementsManager
-    local Space = game.logic.Space
 
     local element_data = ElementsManager.get_state(game, elem_uid)
     local current_space = ElementsManager.get_space(game, elem_uid)
@@ -49,19 +51,17 @@ function TransitionManager.to(game, elem_uid, duration, easing, to, onComplete)
 end
 
 ---Removes a transition
----@param state State
+---@param game Game
 ---@param idx number
-function TransitionManager.remove(state, idx)
-    table.remove(state.transitions, idx)
+function TransitionManager.remove(game, idx)
+    table.remove(game.state.transitions, idx)
 end
 
 ---Updates the transitions
 ---@param game Game
 ---@param dt number
-function TransitionManager.update(game, dt)
+function TransitionManager.late_update(game, dt)
     local state = game.state
-    local ElementsManager = game.logic.ElementsManager
-    local Space = game.logic.Space
 
     for i = #state.transitions, 1, -1 do
         local trans = state.transitions[i]
@@ -71,34 +71,6 @@ function TransitionManager.update(game, dt)
             Tween.updateTarget(game, trans.tween_uid, target_transform)
         end
     end
-end
-
-function TransitionManager.pool_to_hand(game, elem_uid, hand_uid, toIndex, onComplete)
-    TransitionManager.screen_to_hand(game, elem_uid, love.graphics.getWidth(), love.graphics.getHeight() / 2, hand_uid,
-        toIndex,
-        onComplete)
-end
-
-function TransitionManager.screen_to_hand(game, elem_uid, fromX, fromY, hand_uid, toIndex, onComplete)
-    local Space = game.logic.Space
-
-    -- NOTE: from right of the screen - from pool
-    Space.set_space(game, elem_uid, Space.create_screen_space(fromX, fromY))
-
-    TransitionManager.to(game, elem_uid, 0.7, Tween.easing.inOutCubic,
-        Space.create_hand_space(hand_uid, toIndex),
-        onComplete
-    )
-end
-
-function TransitionManager.hand_to_board(game, hand_uid, elem_uid, fromIndex, toX, toY, onComplete)
-    local Space = game.logic.Space
-
-    Space.set_space(game, elem_uid, Space.create_hand_space(hand_uid, fromIndex))
-    TransitionManager.to(game, elem_uid, 0.7, Tween.easing.inOutCubic,
-        Space.create_board_space(toX, toY),
-        onComplete
-    )
 end
 
 return TransitionManager

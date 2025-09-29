@@ -10,17 +10,17 @@ function Space.updateData(game, elem_uid, from_space, to_space)
     local HandManager = game.logic.HandManager
 
     -- Remove element from source space
-    if from_space.type == "board" then
+    if from_space.type == SpaceType.BOARD then
         Board.remove_element(game, from_space.data.x, from_space.data.y)
-    elseif from_space.type == "hand" then
+    elseif from_space.type == SpaceType.HAND then
         HandManager.remove_element(game, from_space.data.hand_uid, from_space.data.index)
     end
     -- Note: screen space doesn't need removal as it's not tracked in state
 
     -- Add element to target space
-    if to_space.type == "board" then
+    if to_space.type == SpaceType.BOARD then
         Board.add_element(game, to_space.data.x, to_space.data.y, elem_uid)
-    elseif to_space.type == "hand" then
+    elseif to_space.type == SpaceType.HAND then
         HandManager.add_element(game, to_space.data.hand_uid, to_space.data.index, elem_uid)
     end
     -- Note: screen space doesn't need addition as it's not tracked in state
@@ -53,9 +53,9 @@ function Space.get_world_transform_from_space_info(game, spaceInfo)
     -- NOTE: screen is default space info, nothing converts
     local worldTransform = Space.get_world_transform_in_screen_space(game, spaceInfo.data.x, spaceInfo.data.y)
 
-    if (spaceInfo.type == "board") then
+    if (spaceInfo.type == SpaceType.BOARD) then
         worldTransform = Board.get_world_transform_in_board_space(game, spaceInfo.data.x, spaceInfo.data.y)
-    elseif (spaceInfo.type == "hand") then
+    elseif (spaceInfo.type == SpaceType.HAND) then
         worldTransform = HandManager.get_world_transform_in_hand_space(game, spaceInfo.data.hand_uid,
             spaceInfo.data.index)
     end
@@ -71,16 +71,16 @@ end
 function Space.get_space_type_by_position(game, x, y)
     -- NOTE: Check if point is in board area
     if Space.is_in_board_area(game, x, y) then
-        return "board"
+        return SpaceType.BOARD
     end
 
     -- NOTE: Check if point is in hand area
     if Space.is_in_hand_area(game, x, y) then
-        return "hand"
+        return SpaceType.HAND
     end
 
     -- NOTE: If not in any specific area, it's in screen space
-    return "screen"
+    return SpaceType.SCREEN
 end
 
 ---Checks if point is in board area
@@ -164,7 +164,7 @@ end
 ---@return SpaceInfo
 function Space.create_screen_space(x, y)
     return {
-        type = "screen",
+        type = SpaceType.SCREEN,
         data = {
             x = x,
             y = y
@@ -178,7 +178,7 @@ end
 ---@return SpaceInfo
 function Space.create_board_space(x, y)
     return {
-        type = "board",
+        type = SpaceType.BOARD,
         data = {
             x = x,
             y = y
@@ -192,7 +192,7 @@ end
 ---@return SpaceInfo
 function Space.create_hand_space(hand_uid, index)
     return {
-        type = "hand",
+        type = SpaceType.HAND,
         data = {
             hand_uid = hand_uid,
             index = index
@@ -209,9 +209,9 @@ function Space.equals(space1, space2)
         return false
     end
 
-    if space1.type == "screen" or space1.type == "board" then
+    if space1.type == SpaceType.SCREEN or space1.type == SpaceType.BOARD then
         return space1.data.x == space2.data.x and space1.data.y == space2.data.y
-    elseif space1.type == "hand" then
+    elseif space1.type == SpaceType.HAND then
         return space1.data.hand_uid == space2.data.hand_uid and space1.data.index == space2.data.index
     end
 

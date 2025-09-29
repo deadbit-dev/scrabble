@@ -1,5 +1,7 @@
 local tween = {}
 
+local System = require("system")
+
 -- easing
 
 -- Adapted from https://github.com/EmmanuelOga/easing. See LICENSE.txt for credits.
@@ -243,10 +245,6 @@ tween.easing = {
     outInBounce = outInBounce
 }
 
-
-
--- private stuff
-
 local function copyTables(destination, keysTable, valuesTable)
     valuesTable = valuesTable or keysTable
     local mt = getmetatable(keysTable)
@@ -361,7 +359,7 @@ function tween.create(game, duration, subject, target, easing, onComplete)
     easing = getEasingFunction(easing)
     checkNewParams(duration, subject, target, easing)
 
-    local tween_uid = game.engine.generate_uid()
+    local tween_uid = System.generate_uid()
 
     local state = game.state
     state.tweens[tween_uid] = {
@@ -376,6 +374,15 @@ function tween.create(game, duration, subject, target, easing, onComplete)
     }
 
     return tween_uid
+end
+
+---Получает данные твина
+---@param game Game
+---@param tween_uid number
+---@return Tween|nil
+function tween.get(game, tween_uid)
+    local state = game.state
+    return state.tweens[tween_uid]
 end
 
 ---Удаляет твин из состояния
@@ -396,15 +403,6 @@ function tween.updateTarget(game, tween_uid, new_target)
     if tween_data and new_target then
         copyTables(tween_data.target, {}, new_target)
     end
-end
-
----Получает данные твина
----@param game Game
----@param tween_uid number
----@return Tween|nil
-function tween.get(game, tween_uid)
-    local state = game.state
-    return state.tweens[tween_uid]
 end
 
 ---Обновляет все твины в состоянии

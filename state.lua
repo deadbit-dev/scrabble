@@ -32,11 +32,6 @@
 ---@field hand_uid number
 ---@field points number
 
----@alias SpaceType
----| "hand"
----| "board"
----| "screen"
-
 ---@class XYData
 ---@field x number
 ---@field y number
@@ -107,6 +102,12 @@
 ---@field timers table[]
 ---@field current_player_uid number|nil
 ---@field input InputState
+
+SpaceType = {
+    HAND = 1,
+    BOARD = 2,
+    SCREEN = 3
+}
 
 local state = {
     cells = {},
