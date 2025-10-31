@@ -1,64 +1,81 @@
--- NOTE: setup import and postswap [DEPRICATED]
--- require("hotreload")
+local conf = require("conf")
+local state = require("state")
+local resources = require("resources")
 
-local Board = require("systems.board"),
-local CellManager = require("systems.cell_manager"),
-local PlayerManager = require("systems.player_manager"),
-local HandManager = require("systems.hand_manager"),
-local ElementManager = require("systems.element_manager"),
-local Selection = require("systems.selection"),
-local Drag = require("systems.drag"),
-local Drop = require("systems.drop"),
-local TransitionManager = require("systems.transition_manager"),
--- local Cheats = require("systems.cheats"),
+local system = require("helpers.system")
+local input = require("core.input")
+local tween = require("core.tween")
 
-local Game = require("game")
+local board = require("modules.board")
+local player = require("modules.player")
+local hand = require("modules.hand")
+local element = require("modules.element")
+local selection = require("modules.selection")
+local drag = require("modules.drag")
+local drop = require("modules.drop")
+local transition = require("modules.transition")
 
 function love.load()
-    game = Game.new(
-        require("conf"),
-        require("resources"),
-        require("state"),
-        OrderedMap({
-            addSystem(Board, CellManager, ElementManager),
-            -- CellManager(),
-            -- PlayerManager(),
-            -- HandManager(),
-            -- ElementManager(),
-            -- Selection(),
-            -- Drag(),
-            -- Drop(),
-            -- TransitionManager(),
-        })
-    )
+    system.init()
+
+    resources.load()
+
+    board.init(state, conf)
+    player.init(state, conf)
 end
 
+---@param dt number
 function love.update(dt)
-    game:update(dt)
+    input.update(state, conf, dt)
+
+    board.update(state, conf, dt)
+    hand.update(state, conf, dt)
+    selection.update(state, conf, dt)
+    drag.update(state, conf, dt)
+    drop.update(state, conf, dt)
+    transition.update(state, conf, dt)
+
+    tween.update(state, dt)
+
+    input.clear(state)
 end
 
----@diagnostic disable-next-line: duplicate-set-field
 function love.draw()
-    game:render()
+    love.graphics.clear(conf.colors.background)
+
+    board.draw(state, conf, resources)
+    hand.draw(state, conf, resources)
+    element.draw(state, conf, resources)
 end
 
----@diagnostic disable-next-line: duplicate-set-field
+---@param key string
 function love.keypressed(key)
-    Input.keypressed(data.state, key)
+    input.keypressed(state, key)
 end
 
+---@param key string
 function love.keyreleased(key)
-    Input.keyreleased(data.state, key)
+    input.keyreleased(state, key)
 end
 
+---@param x number
+---@param y number
+---@param button number
 function love.mousepressed(x, y, button)
-    Input.mousepressed(data.state, x, y, button)
+    input.mousepressed(state, x, y, button)
 end
 
+---@param x number
+---@param y number
+---@param dx number
+---@param dy number
 function love.mousemoved(x, y, dx, dy)
-    Input.mousemoved(data.state, x, y, dx, dy)
+    input.mousemoved(state, x, y, dx, dy)
 end
 
+---@param x number
+---@param y number
+---@param button number
 function love.mousereleased(x, y, button)
-    Input.mousereleased(data.state, x, y, button)
+    input.mousereleased(state, x, y, button)
 end

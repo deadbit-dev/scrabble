@@ -1,53 +1,37 @@
-local resources = {
-    fonts = {},
-    textures = {},
-    imageData = {},
-}
+-- Ресурсы игры - текстуры и шрифты
+local resources = {}
 
-local asset_folder_path = "assets/"
+-- Путь к ресурсам
+local asset_path = "assets/"
 
-local function cleanupResource(resource)
-    if resource then
-        resource:release()
-    end
-end
+-- Таблицы для ресурсов
+resources.textures = {}
+resources.fonts = {}
 
-function resources.loadFont(id, path, size)
-    cleanupResource(resources.fonts[id])
-    resources.fonts[id] = love.graphics.newFont(path, size)
-end
-
-local function loadFonts()
-    local files = love.filesystem.getDirectoryItems(asset_folder_path)
-    for _, file in ipairs(files) do
-        if file:match("%.ttf$") or file:match("%.otf$") then
-            local id = file:gsub("%.ttf$", ""):gsub("%.otf$", "")
-            resources.loadFont(id, asset_folder_path .. file, 64)
-        end
-    end
-end
-
-function resources.loadTexture(id, path)
-    cleanupResource(resources.textures[id])
-    local imageData = love.image.newImageData(path)
-    resources.imageData[id] = imageData
-    resources.textures[id] = love.graphics.newImage(imageData)
-    resources.textures[id]:setFilter("linear", "linear")
-end
-
-local function loadTextures()
-    local files = love.filesystem.getDirectoryItems(asset_folder_path)
-    for _, file in ipairs(files) do
-        if file:match("%.png$") or file:match("%.jpg$") or file:match("%.jpeg$") then
-            local id = file:gsub("%.png$", ""):gsub("%.jpg$", ""):gsub("%.jpeg$", "")
-            resources.loadTexture(id, asset_folder_path .. file)
-        end
-    end
-end
-
+---Загружает все ресурсы
 function resources.load()
-    loadFonts()
-    loadTextures()
+    -- Текстуры
+    resources.textures.field = love.graphics.newImage(asset_path .. "field.png")
+    resources.textures.cell = love.graphics.newImage(asset_path .. "cell.png")
+    resources.textures.cell_shadow = love.graphics.newImage(asset_path .. "cell_shadow.png")
+    resources.textures.cross = love.graphics.newImage(asset_path .. "cross.png")
+    resources.textures.element = love.graphics.newImage(asset_path .. "element.png")
+    resources.textures.hand = love.graphics.newImage(asset_path .. "hand.png")
+    resources.textures.bottom_pad = love.graphics.newImage(asset_path .. "bottom_pad.png")
+    resources.textures.top_pad = love.graphics.newImage(asset_path .. "top_pad.png")
+    resources.textures.top_pad_shadow = love.graphics.newImage(asset_path .. "top_pad_shadow.png")
+    resources.textures.cursor = love.graphics.newImage(asset_path .. "cursor.png")
+    resources.textures.cursor_default = love.graphics.newImage(asset_path .. "cursor_default.png")
+    resources.textures.cursor_grab = love.graphics.newImage(asset_path .. "cursor_grab.png")
+    resources.textures.cursor_grab2 = love.graphics.newImage(asset_path .. "cursor_grab2.png")
+
+    -- Устанавливаем фильтр для всех текстур
+    for _, texture in pairs(resources.textures) do
+        texture:setFilter("linear", "linear")
+    end
+
+    -- Шрифты
+    resources.fonts.default = love.graphics.newFont(asset_path .. "default.ttf", 64)
 end
 
 return resources

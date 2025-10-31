@@ -1,6 +1,7 @@
+-- Модуль анимации
 local tween = {}
 
-local System = require("system")
+local system = require("helpers.system")
 
 -- easing
 
@@ -313,13 +314,12 @@ local function performEasingOnSubject(subject, target, initial, clock, duration,
     end
 end
 
----Обновляет твин по UID
----@param game Game
+---Обновляет один твин
+---@param state State
 ---@param tween_uid number
 ---@param dt number
 ---@return boolean is_completed
-local function update(game, tween_uid, dt)
-    local state = game.state
+local function update(state, tween_uid, dt)
     local tween_data = state.tweens[tween_uid]
     if not tween_data then
         return true -- Твин не найден, считаем завершенным
@@ -348,20 +348,19 @@ local function update(game, tween_uid, dt)
 end
 
 ---Создает новый твин и сохраняет его в состоянии
----@param game Game
+---@param state State
 ---@param duration number
 ---@param subject table
 ---@param target table
 ---@param easing function|string
----@param onComplete function|nil
+---@param on_complete function|nil
 ---@return number tween_uid
-function tween.create(game, duration, subject, target, easing, onComplete)
+function tween.create(state, duration, subject, target, easing, on_complete)
     easing = getEasingFunction(easing)
     checkNewParams(duration, subject, target, easing)
 
-    local tween_uid = System.generate_uid()
+    local tween_uid = system.generate_uid()
 
-    local state = game.state
     state.tweens[tween_uid] = {
         uid = tween_uid,
         duration = duration,
@@ -370,35 +369,32 @@ function tween.create(game, duration, subject, target, easing, onComplete)
         easing = easing,
         clock = 0,
         initial = nil,
-        onComplete = onComplete
+        onComplete = on_complete
     }
 
     return tween_uid
 end
 
 ---Получает данные твина
----@param game Game
+---@param state State
 ---@param tween_uid number
 ---@return Tween|nil
-function tween.get(game, tween_uid)
-    local state = game.state
+function tween.get(state, tween_uid)
     return state.tweens[tween_uid]
 end
 
 ---Удаляет твин из состояния
----@param game Game
+---@param state State
 ---@param tween_uid number
-function tween.remove(game, tween_uid)
-    local state = game.state
+function tween.remove(state, tween_uid)
     state.tweens[tween_uid] = nil
 end
 
 ---Обновляет цель твина
----@param game Game
+---@param state State
 ---@param tween_uid number
 ---@param new_target table
-function tween.updateTarget(game, tween_uid, new_target)
-    local state = game.state
+function tween.update_target(state, tween_uid, new_target)
     local tween_data = state.tweens[tween_uid]
     if tween_data and new_target then
         copyTables(tween_data.target, {}, new_target)
@@ -406,14 +402,13 @@ function tween.updateTarget(game, tween_uid, new_target)
 end
 
 ---Обновляет все твины в состоянии
----@param game Game
+---@param state State
 ---@param dt number
-function tween.update(game, dt)
-    local state = game.state
+function tween.update(state, dt)
     local tweens_to_remove = {}
 
     for tween_uid, tween_data in pairs(state.tweens) do
-        local is_completed = update(game, tween_uid, dt)
+        local is_completed = update(state, tween_uid, dt)
         if is_completed then
             -- Вызываем коллбэк перед удалением твина
             if tween_data.onComplete then
@@ -425,7 +420,7 @@ function tween.update(game, dt)
 
     -- Удаляем завершенные твины
     for _, tween_uid in ipairs(tweens_to_remove) do
-        tween.remove(game, tween_uid)
+        tween.remove(state, tween_uid)
     end
 end
 

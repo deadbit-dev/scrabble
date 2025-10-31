@@ -103,6 +103,7 @@
 ---@field current_player_uid number|nil
 ---@field input InputState
 
+---@enum SpaceType
 SpaceType = {
     HAND = 1,
     BOARD = 2,
@@ -114,7 +115,7 @@ local state = {
     elements = {},
     pool = {},
     board = {
-        transform = { x = 0, y = 0, width = 0, height = 0 },
+        transform = { x = 0, y = 0, width = 0, height = 0, z_index = 0 },
         cell_uids = {},
         elem_uids = {}
     },
@@ -124,6 +125,7 @@ local state = {
     tweens = {},
     timers = {},
     current_player_uid = nil,
+    selected_element_uid = nil,
     drag = {
         active = false,
         element_uid = nil,
@@ -148,52 +150,5 @@ local state = {
         }
     },
 }
-
----Clears the state
-function state:clear()
-    self.cells = {}
-    self.elements = {}
-    self.pool = {}
-    self.board = {
-        transform = {
-            x = 0,
-            y = 0,
-            width = 0,
-            height = 0,
-            z_index = 0
-        },
-        cell_uids = {},
-        elem_uids = {}
-    }
-    self.hands = {}
-    self.players = {}
-    self.transitions = {}
-    self.tweens = {}
-    self.timers = {}
-    self.current_player_uid = nil
-    self.drag = {
-        active = false,
-        element_uid = nil,
-        original_space = nil
-    }
-    self.input = {
-        mouse = {
-            x = 0,
-            y = 0,
-            dx = 0,
-            dy = 0,
-            buttons = {},
-            last_click_pos = nil,
-            last_click_time = 0,
-            click_pos = nil,
-            is_drag = false,
-            is_click = false,
-            is_double_click = false
-        },
-        keyboard = {
-            buttons = {}
-        }
-    }
-end
 
 return state
