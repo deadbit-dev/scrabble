@@ -111,6 +111,7 @@ SpaceType = {
 }
 
 local state = {
+    is_restart = false,
     cells = {},
     elements = {},
     pool = {},

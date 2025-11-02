@@ -1,9 +1,7 @@
--- Модуль управления элементами (буквами)
 local element = {}
 
-local system = require("helpers.system")
+local system = import("core.system")
 
----Рисует элемент
 ---@param conf Config
 ---@param resources table
 ---@param element_data Element
@@ -73,7 +71,6 @@ local function draw_element(conf, resources, element_data)
     love.graphics.pop()
 end
 
----Создает элемент
 ---@param state State
 ---@param conf Config
 ---@param letter string
@@ -107,7 +104,6 @@ function element.create(state, conf, letter, x, y, width, height)
     return elem_uid
 end
 
----Получает элемент по uid
 ---@param state State
 ---@param uid number
 ---@return Element
@@ -115,14 +111,12 @@ function element.get_state(state, uid)
     return state.elements[uid]
 end
 
----Удаляет элемент
 ---@param state State
 ---@param elem_uid number
 function element.remove(state, elem_uid)
     state.elements[elem_uid] = nil
 end
 
----Устанавливает пространство элемента
 ---@param state State
 ---@param elem_uid number
 ---@param space_info SpaceInfo
@@ -131,7 +125,6 @@ function element.set_space(state, elem_uid, space_info)
     element_data.space = space_info
 end
 
----Получает пространство элемента
 ---@param state State
 ---@param elem_uid number
 ---@return SpaceInfo
@@ -140,7 +133,6 @@ function element.get_space(state, elem_uid)
     return element_data.space
 end
 
----Устанавливает трансформ элемента
 ---@param state State
 ---@param elem_uid number
 ---@param transform Transform
@@ -149,7 +141,6 @@ function element.set_transform(state, elem_uid, transform)
     element_data.transform = transform
 end
 
----Получает трансформ элемента
 ---@param state State
 ---@param elem_uid number
 ---@return Transform
@@ -158,7 +149,6 @@ function element.get_transform(state, elem_uid)
     return element_data.transform
 end
 
----Проверяет, находится ли точка в границах элемента
 ---@param state State
 ---@param elem_uid number
 ---@param point {x: number, y: number}
@@ -172,7 +162,6 @@ function element.is_point_in_element_bounds(state, elem_uid, point)
         and point.y <= transform.y + transform.height
 end
 
----Рисует все элементы
 ---@param state State
 ---@param conf Config
 ---@param resources table

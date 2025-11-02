@@ -1,11 +1,9 @@
--- Модуль управления переходами элементов между пространствами
 local transition = {}
 
-local space = require("helpers.space")
-local tween = require("core.tween")
-local element = require("modules.element")
+local space = import("space")
+local tween = import("core.tween")
+local element = import("element")
 
----Создает переход элемента
 ---@param state State
 ---@param conf Config
 ---@param elem_uid number
@@ -20,18 +18,14 @@ function transition.to(state, conf, elem_uid, duration, easing, to, on_complete)
 
     space.update_data(state, elem_uid, current_space, to)
 
-    -- Создаем обертку для коллбэка, которая удалит переход
     local transition_index = #state.transitions + 1
     local wrapped_callback = function()
-        -- Удаляем переход
         transition.remove(state, transition_index)
-        -- Вызываем оригинальный коллбэк
         if on_complete then
             on_complete()
         end
     end
 
-    -- Создаем твин и получаем его UID
     local tween_uid = tween.create(
         state,
         duration,
@@ -50,14 +44,12 @@ function transition.to(state, conf, elem_uid, duration, easing, to, on_complete)
     return transition_index
 end
 
----Удаляет переход
 ---@param state State
 ---@param idx number
 function transition.remove(state, idx)
     table.remove(state.transitions, idx)
 end
 
----Обновляет переходы
 ---@param state State
 ---@param conf Config
 ---@param dt number
@@ -70,6 +62,30 @@ function transition.update(state, conf, dt)
             tween.update_target(state, trans.tween_uid, target_transform)
         end
     end
+end
+
+function transition.pool_to_hand(state, conf, elem_uid, hand_uid, toIndex, onComplete)
+    screen_to_hand(state, conf, elem_uid, love.graphics.getWidth(), love.graphics.getHeight() / 2, hand_uid,
+        toIndex,
+        onComplete)
+end
+
+function transition.screen_to_hand(state, conf, elem_uid, fromX, fromY, hand_uid, toIndex, onComplete)
+    -- NOTE: from right of the screen - from pool
+    space.set_space(state, conf, elem_uid, space.create_screen_space(fromX, fromY))
+
+    to(game, elem_uid, 0.7, tween.easing.inOutCubic,
+        space.create_hand_space(hand_uid, toIndex),
+        onComplete
+    )
+end
+
+function transition.hand_to_board(state, conf, hand_uid, elem_uid, fromIndex, toX, toY, onComplete)
+    space.set_space(state, conf, elem_uid, space.create_hand_space(hand_uid, fromIndex))
+    to(game, elem_uid, 0.7, tween.easing.inOutCubic,
+        space.create_board_space(toX, toY),
+        onComplete
+    )
 end
 
 return transition

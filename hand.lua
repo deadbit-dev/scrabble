@@ -1,11 +1,9 @@
--- Модуль управления рукой игрока
 local hand = {}
 
-local system = require("helpers.system")
-local element = require("modules.element")
-local math_helper = require("helpers.Math")
+local utils = import("utils")
+local system = import("core.system")
+local element = import("element")
 
----Инициализирует руку
 ---@param state State
 ---@return number
 function hand.init(state)
@@ -19,7 +17,6 @@ function hand.init(state)
     return hand_uid
 end
 
----Добавляет элемент в руку
 ---@param state State
 ---@param hand_uid number
 ---@param index number
@@ -35,7 +32,6 @@ function hand.add_element(state, hand_uid, index, elem_uid)
     })
 end
 
----Получает uid элемента в руке
 ---@param state State
 ---@param hand_uid number
 ---@param index number
@@ -44,7 +40,6 @@ function hand.get_elem_uid(state, hand_uid, index)
     return state.hands[hand_uid].elem_uids[index]
 end
 
----Получает свободный слот в руке
 ---@param state State
 ---@param hand_uid number
 ---@return number|nil
@@ -58,7 +53,6 @@ function hand.get_empty_slot(state, hand_uid)
     return nil
 end
 
----Удаляет элемент из руки
 ---@param state State
 ---@param hand_uid number
 ---@param index number
@@ -66,7 +60,6 @@ function hand.remove_element(state, hand_uid, index)
     state.hands[hand_uid].elem_uids[index] = nil
 end
 
----Получает индекс элемента в руке
 ---@param state State
 ---@param hand_uid number
 ---@param elem_uid number
@@ -79,7 +72,6 @@ function hand.get_index(state, hand_uid, elem_uid)
     end
 end
 
----Проверяет, пуста ли рука
 ---@param state State
 ---@param hand_uid number
 ---@return boolean
@@ -97,7 +89,6 @@ function hand.is_empty(state, hand_uid)
     return true
 end
 
----Получает мировой трансформ для слота в руке
 ---@param state State
 ---@param conf Config
 ---@param hand_uid number
@@ -139,7 +130,6 @@ function hand.get_world_transform_in_hand_space(state, conf, hand_uid, index)
     }
 end
 
----Вычисляет мировой трансформ руки
 ---@param state State
 ---@param conf Config
 ---@return Transform
@@ -155,14 +145,14 @@ function hand.get_world_transform(state, conf)
     local min_hand_height = conf.hand.min_height
 
     -- NOTE: Position at bottom center of screen
-    local offset_from_center = math_helper.get_percent_size(window_width / 2, window_height / 2,
+    local offset_from_center = utils.get_percent_size(window_width / 2, window_height / 2,
         conf.hand.offset_from_center_percent)
     local x = (window_width - width) / 2
     local y = ((window_height - height) / 2) + offset_from_center
 
     -- NOTE: Ensure hand doesn't go below screen bottom
     local maxY = window_height - height
-    local offset_from_bottom_screen = math_helper.get_percent_size(window_width, window_height,
+    local offset_from_bottom_screen = utils.get_percent_size(window_width, window_height,
         conf.hand.min_offset_from_bottom_screen_percent)
     if y > maxY - offset_from_bottom_screen then
         y = maxY - offset_from_bottom_screen
@@ -176,7 +166,7 @@ function hand.get_world_transform(state, conf)
     }
 
     -- NOTE: Calculate actual dimensions with texture scaling
-    local resources = require("resources")
+    local resources = import("resources")
     local texture = resources.textures.bottom_pad
     if not texture then
         return {
@@ -209,7 +199,6 @@ function hand.get_world_transform(state, conf)
     }
 end
 
----Обновляет трансформы всех элементов в руке
 ---@param state State
 ---@param conf Config
 ---@param hand_uid number
@@ -226,7 +215,6 @@ function hand.update_elements_transform(state, conf, hand_uid)
     end
 end
 
----Обновляет руку
 ---@param state State
 ---@param conf Config
 ---@param dt number
@@ -237,7 +225,6 @@ function hand.update(state, conf, dt)
     end
 end
 
----Рисует фон руки
 ---@param conf Config
 ---@param resources table
 ---@param transform Transform
@@ -252,7 +239,6 @@ local function draw_bg(conf, resources, transform)
         transform.height / resources.textures.hand:getHeight())
 end
 
----Рисует руку
 ---@param state State
 ---@param conf Config
 ---@param resources table

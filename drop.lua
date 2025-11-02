@@ -1,19 +1,16 @@
--- Модуль управления сбросом элементов (дроп после драга)
 local drop = {}
 
-local input = require("core.input")
-local tween = require("core.tween")
-local hand = require("modules.hand")
-local transition = require("modules.transition")
-local space = require("helpers.space")
-local log = require("helpers.log")
+local log = import("core.log")
+local input = import("core.input")
+local tween = import("core.tween")
+local hand = import("hand")
+local transition = import("transition")
+local space = import("space")
 
----Обновляет состояние дропа
 ---@param state State
 ---@param conf Config
 ---@param dt number
 function drop.update(state, conf, dt)
-    -- Обрабатываем дроп когда драг завершился
     if (not input.is_drag(state) and state.drag.element_uid ~= nil) then
         local mouse_pos = input.get_mouse_pos(state)
         local space_type = space.get_space_type_by_position(state, conf, mouse_pos.x, mouse_pos.y)
@@ -45,14 +42,14 @@ function drop.update(state, conf, dt)
             local hand_uid = state.players[state.current_player_uid].hand_uid
             local empty_slot = hand.get_empty_slot(state, hand_uid)
 
-            -- Try to place in hand first
+            -- NOTE: Try to place in hand first
             if empty_slot ~= nil then
                 log.log("[DROP ELEMENT TO HAND (SCREEN SPACE)]: hand_uid: " .. hand_uid .. ", empty_slot: " .. empty_slot)
                 transition.to(state, conf, state.drag.element_uid, 0.7, tween.easing.inOutCubic,
                     space.create_hand_space(hand_uid, empty_slot)
                 )
             else
-                -- If hand is full, return element to its original position
+                -- NOTE: If hand is full, return element to its original position
                 log.warn("[DROP ELEMENT TO HAND]: HAND IS FULL! Returning to original position.")
                 if state.drag.original_space then
                     log.log("[DROP ELEMENT TO ORIGINAL POSITION]: type: " .. state.drag.original_space.type)

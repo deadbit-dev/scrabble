@@ -1,9 +1,8 @@
--- Модуль управления игроками
 local player = {}
 
-local system = require("helpers.system")
-local hand = require("modules.hand")
-local element = require("modules.element")
+local system = import("core.system")
+local hand = import("hand")
+local element = import("element")
 
 ---Инициализирует игрока
 ---@param state State

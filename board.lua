@@ -1,10 +1,8 @@
--- Модуль управления игровым полем
 local board = {}
 
-local cell = require("modules.cell")
-local element = require("modules.element")
+local cell = import("cell")
+local element = import("element")
 
----Инициализирует игровое поле, создавая клетки с множителями
 ---@param state State
 ---@param conf Config
 function board.init(state, conf)
@@ -17,7 +15,6 @@ function board.init(state, conf)
     end
 end
 
----Обновляет трансформы клеток
 ---@param state State
 ---@param conf Config
 local function update_cells_transform(state, conf)
@@ -29,7 +26,6 @@ local function update_cells_transform(state, conf)
     end
 end
 
----Обновляет трансформы всех элементов на поле
 ---@param state State
 ---@param conf Config
 local function update_elements_transform(state, conf)
@@ -46,7 +42,6 @@ local function update_elements_transform(state, conf)
     end
 end
 
----Обновляет игровое поле
 ---@param state State
 ---@param conf Config
 ---@param dt number
@@ -56,7 +51,6 @@ function board.update(state, conf, dt)
     update_elements_transform(state, conf)
 end
 
----Рисует фон поля
 ---@param conf Config
 ---@param resources table
 ---@param transform Transform
@@ -71,7 +65,6 @@ local function draw_bg(conf, resources, transform)
         transform.height / resources.textures.field:getHeight())
 end
 
----Рисует игровое поле
 ---@param state State
 ---@param conf Config
 ---@param resources table
@@ -92,7 +85,6 @@ function board.draw(state, conf, resources)
     end
 end
 
----Получает uid клетки на поле
 ---@param state State
 ---@param x number
 ---@param y number
@@ -101,7 +93,6 @@ function board.get_board_cell_uid(state, x, y)
     return state.board.cell_uids[x][y]
 end
 
----Устанавливает клетку на поле
 ---@param state State
 ---@param conf Config
 ---@param x number
@@ -111,7 +102,6 @@ function board.add_cell(state, conf, x, y, cell_uid)
     state.board.cell_uids[x][y] = cell_uid
 end
 
----Получает uid элемента на поле
 ---@param state State
 ---@param x number
 ---@param y number
@@ -120,7 +110,6 @@ function board.get_board_elem_uid(state, x, y)
     return state.board.elem_uids[x][y]
 end
 
----Устанавливает элемент на поле
 ---@param state State
 ---@param x number
 ---@param y number
@@ -136,7 +125,6 @@ function board.add_element(state, x, y, elem_uid)
     })
 end
 
----Удаляет элемент с поля
 ---@param state State
 ---@param x number
 ---@param y number
@@ -147,7 +135,6 @@ function board.remove_element(state, x, y)
     end
 end
 
----Вычисляет layout клеток поля
 ---@param conf Config
 ---@return table containing cellSize, cellGap, and fieldGaps
 function board.get_layout(conf)
@@ -189,7 +176,6 @@ function board.get_layout(conf)
     }
 end
 
----Вычисляет мировой трансформ поля
 ---@param conf Config
 ---@return Transform
 function board.get_world_transform(conf)
@@ -245,7 +231,6 @@ function board.get_world_transform(conf)
     }
 end
 
----Получает мировой трансформ для клетки в координатах поля
 ---@param conf Config
 ---@param x number
 ---@param y number

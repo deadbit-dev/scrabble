@@ -1,20 +1,18 @@
--- Модуль управления перетаскиванием элементов
 local drag = {}
 
-local input = require("core.input")
-local board = require("modules.board")
-local hand = require("modules.hand")
-local element = require("modules.element")
-local space = require("helpers.space")
+local input = import("core.input")
+local board = import("board")
+local hand = import("hand")
+local element = import("element")
+local space = import("space")
 
----Начинает драг
 ---@param state State
 ---@param conf Config
 local function start_drag(state, conf)
     local click_pos = input.get_click_pos(state)
     if not click_pos then return end
 
-    -- Находим элемент в позиции клика
+    -- NOTE: find element in click pos
     local element_uid = nil
     for _, elem in pairs(state.elements) do
         if element.is_point_in_element_bounds(state, elem.uid, click_pos) then
@@ -31,7 +29,6 @@ local function start_drag(state, conf)
     local type = element_data.space.type
     local data = element_data.space.data
 
-    -- Сохраняем состояние драга
     state.drag.active = true
     state.drag.element_uid = element_uid
     state.drag.original_space = {
@@ -54,7 +51,6 @@ local function start_drag(state, conf)
     space.set_space(state, conf, element_uid, space.create_screen_space(target_transform.x, target_transform.y))
 end
 
----Обновляет позицию элемента во время драга
 ---@param state State
 ---@param conf Config
 ---@param dt number
@@ -74,42 +70,35 @@ local function update_drag(state, conf, dt)
     end
 end
 
----Заканчивает драг
 ---@param state State
 ---@param conf Config
 local function end_drag(state, conf)
     if state.drag.element_uid and state.drag.original_space then
         local element_data = element.get_state(state, state.drag.element_uid)
         if element_data then
-            -- Возвращаем элемент в исходное место
             space.set_space(state, conf, element_data.uid, state.drag.original_space)
         end
 
-        -- Сбрасываем состояние драга
         state.drag.active = false
         state.drag.element_uid = nil
         state.drag.original_space = nil
     end
 end
 
----Обновляет состояние драга
 ---@param state State
 ---@param conf Config
 ---@param dt number
 function drag.update(state, conf, dt)
-    -- Начинаем драг когда input определяет это
     if input.is_drag(state) and not state.drag.active then
         start_drag(state, conf)
     end
 
-    -- Обновляем позицию во время драга
     if state.drag.active then
         update_drag(state, conf, dt)
     end
 
-    -- Завершаем драг когда input сообщает об окончании
     if not input.is_drag(state) and state.drag.active then
-        end_drag(state, conf)
+        -- end_drag(state, conf)
     end
 end
 

@@ -1,7 +1,6 @@
--- Модуль анимации
 local tween = {}
 
-local system = require("helpers.system")
+local system = import("core.system")
 
 -- easing
 
@@ -314,7 +313,6 @@ local function performEasingOnSubject(subject, target, initial, clock, duration,
     end
 end
 
----Обновляет один твин
 ---@param state State
 ---@param tween_uid number
 ---@param dt number
@@ -322,10 +320,9 @@ end
 local function update(state, tween_uid, dt)
     local tween_data = state.tweens[tween_uid]
     if not tween_data then
-        return true -- Твин не найден, считаем завершенным
+        return true
     end
 
-    -- Инициализируем initial если нужно
     if not tween_data.initial then
         tween_data.initial = copyTables({}, tween_data.target, tween_data.subject)
     end
@@ -347,7 +344,6 @@ local function update(state, tween_uid, dt)
     end
 end
 
----Создает новый твин и сохраняет его в состоянии
 ---@param state State
 ---@param duration number
 ---@param subject table
@@ -375,7 +371,6 @@ function tween.create(state, duration, subject, target, easing, on_complete)
     return tween_uid
 end
 
----Получает данные твина
 ---@param state State
 ---@param tween_uid number
 ---@return Tween|nil
@@ -383,14 +378,12 @@ function tween.get(state, tween_uid)
     return state.tweens[tween_uid]
 end
 
----Удаляет твин из состояния
 ---@param state State
 ---@param tween_uid number
 function tween.remove(state, tween_uid)
     state.tweens[tween_uid] = nil
 end
 
----Обновляет цель твина
 ---@param state State
 ---@param tween_uid number
 ---@param new_target table
@@ -401,7 +394,6 @@ function tween.update_target(state, tween_uid, new_target)
     end
 end
 
----Обновляет все твины в состоянии
 ---@param state State
 ---@param dt number
 function tween.update(state, dt)
@@ -410,7 +402,6 @@ function tween.update(state, dt)
     for tween_uid, tween_data in pairs(state.tweens) do
         local is_completed = update(state, tween_uid, dt)
         if is_completed then
-            -- Вызываем коллбэк перед удалением твина
             if tween_data.onComplete then
                 tween_data.onComplete()
             end
@@ -418,7 +409,6 @@ function tween.update(state, dt)
         end
     end
 
-    -- Удаляем завершенные твины
     for _, tween_uid in ipairs(tweens_to_remove) do
         tween.remove(state, tween_uid)
     end

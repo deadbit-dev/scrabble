@@ -1,6 +1,5 @@
 local timer = {}
 
----Creates a timer
 ---@param game Game
 ---@param duration number
 ---@param callback function
@@ -11,7 +10,6 @@ function timer.delay(game, duration, callback)
     return timer
 end
 
----Updates the timers
 ---@param game Game
 ---@param dt number
 function timer.update(game, dt)

@@ -1,16 +1,11 @@
--- Ресурсы игры - текстуры и шрифты
 local resources = {}
 
--- Путь к ресурсам
 local asset_path = "assets/"
 
--- Таблицы для ресурсов
 resources.textures = {}
 resources.fonts = {}
 
----Загружает все ресурсы
 function resources.load()
-    -- Текстуры
     resources.textures.field = love.graphics.newImage(asset_path .. "field.png")
     resources.textures.cell = love.graphics.newImage(asset_path .. "cell.png")
     resources.textures.cell_shadow = love.graphics.newImage(asset_path .. "cell_shadow.png")
@@ -25,12 +20,10 @@ function resources.load()
     resources.textures.cursor_grab = love.graphics.newImage(asset_path .. "cursor_grab.png")
     resources.textures.cursor_grab2 = love.graphics.newImage(asset_path .. "cursor_grab2.png")
 
-    -- Устанавливаем фильтр для всех текстур
     for _, texture in pairs(resources.textures) do
         texture:setFilter("linear", "linear")
     end
 
-    -- Шрифты
     resources.fonts.default = love.graphics.newFont(asset_path .. "default.ttf", 64)
 end
 

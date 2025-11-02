@@ -1,9 +1,7 @@
--- Модуль управления клетками игрового поля
 local cell = {}
 
-local system = require("helpers.system")
+local system = import("core.system")
 
----Создает клетку
 ---@param state State
 ---@param multiplier number
 ---@return number
@@ -13,7 +11,6 @@ function cell.create(state, multiplier)
     return cell_uid
 end
 
----Получает клетку по uid
 ---@param state State
 ---@param uid number
 ---@return Cell
@@ -21,14 +18,12 @@ function cell.get(state, uid)
     return state.cells[uid]
 end
 
----Удаляет клетку
 ---@param state State
 ---@param cell_uid number
 function cell.remove(state, cell_uid)
     state.cells[cell_uid] = nil
 end
 
----Рисует клетку
 ---@param conf Config
 ---@param resources table
 ---@param x number X position of the cell
