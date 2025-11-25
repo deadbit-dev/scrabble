@@ -1,6 +1,6 @@
 local cheats = {}
 
-local input = import("core.input")
+local input = import("input")
 local tests = import("tests")
 
 function cheats.update(state, conf, dt)

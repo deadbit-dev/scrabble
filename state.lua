@@ -11,8 +11,9 @@
 
 ---@class Element
 ---@field uid number
----@field transform Transform
 ---@field space SpaceInfo
+---@field transform Transform
+---@field world_transform Transform
 ---@field letter string
 ---@field points number
 
@@ -24,7 +25,7 @@
 ---@class Hand
 ---@field uid number
 ---@field transform Transform
----@field elem_uids (number|nil)[]
+---@field elem_uids (number)[]
 ---@field size number
 
 ---@class Player
@@ -46,6 +47,7 @@
 
 ---@class Transition
 ---@field element_uid number
+---@field target_space SpaceInfo
 ---@field tween_uid number
 ---@field onComplete function|nil
 
@@ -69,8 +71,10 @@
 ---@field dx number
 ---@field dy number
 ---@field buttons {[number]: ButtonState}
----@field last_click_pos {x: number, y: number}|nil
+---@field press_time number
 ---@field last_click_time number
+---@field last_click_pos {x: number, y: number}|nil
+---@field press_pos {x: number, y: number}|nil
 ---@field click_pos {x: number, y: number}|nil
 ---@field is_drag boolean
 ---@field is_click boolean
@@ -89,6 +93,7 @@
 ---@field original_space SpaceInfo|nil
 
 ---@class State
+---@field is_restart boolean
 ---@field cells {[number]: Cell}
 ---@field elements {[number]: Element}
 ---@field pool number[]
@@ -110,37 +115,49 @@ SpaceType = {
     SCREEN = 3
 }
 
-local state = {
-    is_restart = false,
-    cells = {},
-    elements = {},
-    pool = {},
-    board = {
+---@enum Action
+Action = {
+    KEY_PRESSED = 1,
+    KEY_RELEASED = 2,
+    MOUSE_PRESSED = 3,
+    MOUSE_MOVED = 4,
+    MOUSE_RELEASED = 5
+}
+
+local state = {}
+
+function state:init()
+    self.is_restart = false
+    self.cells = {}
+    self.elements = {}
+    self.pool = {}
+    self.board = {
         transform = { x = 0, y = 0, width = 0, height = 0, z_index = 0 },
         cell_uids = {},
         elem_uids = {}
-    },
-    hands = {},
-    players = {},
-    transitions = {},
-    tweens = {},
-    timers = {},
-    current_player_uid = nil,
-    selected_element_uid = nil,
-    drag = {
+    }
+    self.hands = {}
+    self.players = {}
+    self.transitions = {}
+    self.tweens = {}
+    self.timers = {}
+    self.current_player_uid = nil
+    self.selected_element_uid = nil
+    self.drag = {
         active = false,
         element_uid = nil,
         original_space = nil
-    },
-    input = {
+    }
+    self.input = {
         mouse = {
             x = 0,
             y = 0,
             dx = 0,
             dy = 0,
             buttons = {},
-            last_click_pos = nil,
+            press_time = 0,
             last_click_time = 0,
+            last_click_pos = nil,
             click_pos = nil,
             is_drag = false,
             is_click = false,
@@ -149,7 +166,7 @@ local state = {
         keyboard = {
             buttons = {}
         }
-    },
-}
+    }
+end
 
 return state

@@ -1,6 +1,6 @@
 -- NOTE: hotreload
-local lurker = require("core.lurker")
-local lume = require("core.lume")
+local lurker = require("lurker")
+local lume = require("lume")
 
 _G.import = function(module_name)
     local caller_info = debug.getinfo(2, "S")
@@ -14,7 +14,6 @@ _G.import = function(module_name)
             end
         end
     end
-    print('[imported]: ' .. module_name)
     return require(module_name)
 end
 

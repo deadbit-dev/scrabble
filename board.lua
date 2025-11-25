@@ -1,11 +1,11 @@
 local board = {}
 
+local log = import("log")
 local cell = import("cell")
-local element = import("element")
 
 ---@param state State
 ---@param conf Config
-function board.init(state, conf)
+function board.setup(state, conf)
     for i = 1, conf.field.size do
         state.board.cell_uids[i] = {}
         state.board.elem_uids[i] = {}
@@ -15,28 +15,20 @@ function board.init(state, conf)
     end
 end
 
----@param state State
----@param conf Config
-local function update_cells_transform(state, conf)
-    for j = 1, conf.field.size do
-        for i = 1, conf.field.size do
-            local cell_uid = board.get_board_cell_uid(state, i, j)
-            -- TODO: update cell transform
-        end
-    end
-end
-
----@param state State
----@param conf Config
-local function update_elements_transform(state, conf)
-    for j = 1, conf.field.size do
-        for i = 1, conf.field.size do
-            local element_uid = board.get_board_elem_uid(state, i, j)
-            if element_uid then
-                local element_data = element.get_state(state, element_uid)
-                if element_data then
-                    element_data.transform = board.get_world_transform_in_board_space(conf, i, j)
-                end
+local function update_elemenets_world_transform(state, conf)
+    for y = 1, conf.field.size do
+        for x = 1, conf.field.size do
+            local elem_uid = board.get_board_elem_uid(state, x, y)
+            if elem_uid then
+                local elem_data = state.elements[elem_uid]
+                local space_transform = board.get_world_transform_in_board_space(conf, x, y)
+                elem_data.world_transform = {
+                    x = space_transform.x + elem_data.transform.x,
+                    y = space_transform.y + elem_data.transform.y,
+                    width = space_transform.width + elem_data.transform.width,
+                    height = space_transform.height + elem_data.transform.height,
+                    z_index = space_transform.z_index + elem_data.transform.z_index
+                }
             end
         end
     end
@@ -47,8 +39,7 @@ end
 ---@param dt number
 function board.update(state, conf, dt)
     state.board.transform = board.get_world_transform(conf)
-    update_cells_transform(state, conf)
-    update_elements_transform(state, conf)
+    update_elemenets_world_transform(state, conf)
 end
 
 ---@param conf Config
@@ -114,16 +105,19 @@ end
 ---@param x number
 ---@param y number
 ---@param elem_uid number
-function board.add_element(state, x, y, elem_uid)
+function board.add_element(state, conf, x, y, elem_uid)
     state.board.elem_uids[x][y] = elem_uid
-    element.set_space(state, elem_uid, {
+    local element_data = state.elements[elem_uid]
+    element_data.space = {
         type = SpaceType.BOARD,
         data = {
             x = x,
             y = y
         }
-    })
+    }
 end
+
+-- TODO: by remove element from board, we need reset space for him to Screen, but how if board used in space ?
 
 ---@param state State
 ---@param x number

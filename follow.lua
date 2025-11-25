@@ -1,18 +1,17 @@
 local follow = {}
 
 local utils = import("utils")
-local element = import("element")
 
-function Follow.to(game, elem_uid, target_transform, dt)
+function follow.to(state, elem_uid, target_transform, dt)
     local smoothness = 0.01
-    local elem_transform = element.get_transform(game, elem_uid)
-    element.set_transform(game, elem_uid, {
-        x = utils.lerp(target_transform.x, elem_transform.x, smoothness ^ dt),
-        y = utils.lerp(target_transform.y, elem_transform.y, smoothness ^ dt),
-        width = utils.lerp(target_transform.width, elem_transform.width, smoothness ^ dt),
-        height = utils.lerp(target_transform.height, elem_transform.height, smoothness ^ dt),
-        z_index = utils.lerp(target_transform.z_index, elem_transform.z_index, smoothness ^ dt)
-    })
+    local element_data = state.elements[elem_uid]
+    element_data.transform = {
+        x = utils.lerp(target_transform.x, element_data.transform.x, smoothness ^ dt),
+        y = utils.lerp(target_transform.y, element_data.transform.y, smoothness ^ dt),
+        width = utils.lerp(target_transform.width, element_data.transform.width, smoothness ^ dt),
+        height = utils.lerp(target_transform.height, element_data.transform.height, smoothness ^ dt),
+        z_index = utils.lerp(target_transform.z_index, element_data.transform.z_index, smoothness ^ dt)
+    }
 end
 
 return follow

@@ -1,10 +1,14 @@
-local game = require("game")
+require("hotreload")
+
+local lurker = require("lurker")
+local game = import("game")
 
 function love.load()
     game.init()
 end
 
 function love.update(dt)
+    lurker.update()
     game.update(dt)
 end
 
@@ -12,34 +16,22 @@ function love.draw()
     game.draw()
 end
 
----@param key string
 function love.keypressed(key)
-    game.keypressed(key)
+    game.input(Action.KEY_PRESSED, { key = key })
 end
 
----@param key string
 function love.keyreleased(key)
-    game.keyreleased(key)
+    game.input(Action.KEY_RELEASED, { key = key })
 end
 
----@param x number
----@param y number
----@param button number
 function love.mousepressed(x, y, button)
-    game.mousepressed(x, y, button)
+    game.input(Action.MOUSE_PRESSED, { x = x, y = x, button = button })
 end
 
----@param x number
----@param y number
----@param dx number
----@param dy number
 function love.mousemoved(x, y, dx, dy)
-    game.mousemoved(x, y, dx, dy)
+    game.input(Action.MOUSE_MOVED, { x = x, y = y, dx = dx, dy = dy })
 end
 
----@param x number
----@param y number
----@param button number
 function love.mousereleased(x, y, button)
-    game.mousereleased(x, y, button)
+    game.input(Action.MOUSE_RELEASED, { x = x, y = y, button = button })
 end

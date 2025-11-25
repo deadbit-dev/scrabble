@@ -2,13 +2,10 @@ local space = {}
 
 local board = import("board")
 local hand = import("hand")
-local element = import("element")
 
 ---@param state State
----@param elem_uid number
 ---@param from_space SpaceInfo
----@param to_space SpaceInfo
-function space.update_data(state, elem_uid, from_space, to_space)
+function space.remove_element_from_space(state, from_space)
     -- NOTE: remove element from source space
     if from_space.type == SpaceType.BOARD then
         board.remove_element(state, from_space.data.x, from_space.data.y)
@@ -16,10 +13,16 @@ function space.update_data(state, elem_uid, from_space, to_space)
         hand.remove_element(state, from_space.data.hand_uid, from_space.data.index)
     end
     -- NOTE: screen space doesn't need removal as it's not tracked in state
+end
 
+---@param state State
+---@param conf Config
+---@param elem_uid number
+---@param to_space SpaceInfo
+function space.add_element_to_space(state, conf, elem_uid, to_space)
     -- NOTE: add element to target space
     if to_space.type == SpaceType.BOARD then
-        board.add_element(state, to_space.data.x, to_space.data.y, elem_uid)
+        board.add_element(state, conf, to_space.data.x, to_space.data.y, elem_uid)
     elseif to_space.type == SpaceType.HAND then
         hand.add_element(state, to_space.data.hand_uid, to_space.data.index, elem_uid)
     end
@@ -44,18 +47,18 @@ end
 ---@param conf Config
 ---@param space_info SpaceInfo
 ---@return Transform
-function space.get_world_transform_from_space_info(state, conf, space_info)
-    -- NOTE: screen is default space info, nothing converts
-    local world_transform = space.get_world_transform_in_screen_space(conf, space_info.data.x, space_info.data.y)
-
+function space.get_space_transform(state, conf, space_info)
     if (space_info.type == SpaceType.BOARD) then
-        world_transform = board.get_world_transform_in_board_space(conf, space_info.data.x, space_info.data.y)
-    elseif (space_info.type == SpaceType.HAND) then
-        world_transform = hand.get_world_transform_in_hand_space(state, conf, space_info.data.hand_uid,
+        return board.get_world_transform_in_board_space(conf, space_info.data.x, space_info.data.y)
+    end
+
+    if (space_info.type == SpaceType.HAND) then
+        return hand.get_world_transform_in_hand_space(state, conf, space_info.data.hand_uid,
             space_info.data.index)
     end
 
-    return world_transform
+    -- NOTE: screen is default space info, nothing converts
+    return space.get_world_transform_in_screen_space(conf, space_info.data.x, space_info.data.y)
 end
 
 ---@param state State
@@ -128,58 +131,6 @@ function space.get_board_pos_by_world_pos(conf, x, y)
     boardY = math.max(1, math.min(conf.field.size, boardY))
 
     return { x = boardX, y = boardY }
-end
-
----@param state State
----@param conf Config
----@param elem_uid number
----@param space_info SpaceInfo
-function space.set_space(state, conf, elem_uid, space_info)
-    local current_space = element.get_space(state, elem_uid)
-
-    element.set_space(state, elem_uid, space_info)
-    element.set_transform(state, elem_uid, space.get_world_transform_from_space_info(state, conf, space_info))
-
-    space.update_data(state, elem_uid, current_space, space_info)
-end
-
----@param x number
----@param y number
----@return SpaceInfo
-function space.create_screen_space(x, y)
-    return {
-        type = SpaceType.SCREEN,
-        data = {
-            x = x,
-            y = y
-        }
-    }
-end
-
----@param x number
----@param y number
----@return SpaceInfo
-function space.create_board_space(x, y)
-    return {
-        type = SpaceType.BOARD,
-        data = {
-            x = x,
-            y = y
-        }
-    }
-end
-
----@param hand_uid number
----@param index number
----@return SpaceInfo
-function space.create_hand_space(hand_uid, index)
-    return {
-        type = SpaceType.HAND,
-        data = {
-            hand_uid = hand_uid,
-            index = index
-        }
-    }
 end
 
 ---@param space1 SpaceInfo

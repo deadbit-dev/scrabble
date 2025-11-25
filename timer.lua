@@ -1,19 +1,20 @@
 local timer = {}
 
----@param game Game
+local cron = import("cron")
+
+---@param state State
 ---@param duration number
 ---@param callback function
 ---@return table
-function timer.delay(game, duration, callback)
-    local timer = game.engine.cron.after(duration, callback)
-    table.insert(game.state.timers, timer)
+function timer.delay(state, duration, callback)
+    local timer = cron.after(duration, callback)
+    table.insert(state.timers, timer)
     return timer
 end
 
----@param game Game
+---@param state State
 ---@param dt number
-function timer.update(game, dt)
-    local state = game.state
+function timer.update(state, dt)
     for i = #state.timers, 1, -1 do
         local timer = state.timers[i]
         if timer:update(dt) then

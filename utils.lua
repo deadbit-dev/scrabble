@@ -27,4 +27,20 @@ function utils.get_distance(pos1, pos2)
     return math.sqrt(dx * dx + dy * dy)
 end
 
+---@param transform Transform
+---@param point {x: number, y: number}
+---@return boolean
+function utils.is_point_in_transform_bounds(transform, point)
+    return point.x >= transform.x
+        and point.x <= transform.x + transform.width
+        and point.y >= transform.y
+        and point.y <= transform.y + transform.height
+end
+
+---@param image_data table
+function utils.set_cursor(image_data)
+    local cur = love.mouse.newCursor(image_data, image_data:getWidth() * 0.5, image_data:getHeight() * 0.5)
+    love.mouse.setCursor(cur)
+end
+
 return utils

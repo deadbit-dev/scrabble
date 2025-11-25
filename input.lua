@@ -1,4 +1,5 @@
 -- FIXME/TODO: change input state once instead of into love input callback
+-- FIXME: почему то при долгом удерживании драг не определяется
 
 local input = {}
 
@@ -40,49 +41,61 @@ function input.update(state, conf, dt)
     local mouse = state.input.mouse
 
     if input.is_mouse_pressed(state, 1) then
-        if mouse.click_pos == nil then
+        if mouse.press_pos == nil then
             local mouse_pos = input.get_mouse_pos(state)
 
             -- NOTE: keep mouse pos
             if not mouse.is_drag then
-                mouse.click_pos = { x = mouse_pos.x, y = mouse_pos.y }
-                mouse.last_click_pos = { x = mouse_pos.x, y = mouse_pos.y }
-                mouse.last_click_time = love.timer.getTime()
+                mouse.press_pos = { x = mouse_pos.x, y = mouse_pos.y }
+                mouse.press_time = love.timer.getTime()
             end
         else
             local mouse_pos = input.get_mouse_pos(state)
 
             -- NOTE: drag check
-            if not mouse.is_drag and should_start_drag(conf, mouse.click_pos, mouse.last_click_time, mouse_pos) then
+            if not mouse.is_drag and should_start_drag(conf, mouse.press_pos, mouse.press_time, mouse_pos) then
                 mouse.is_drag = true
             end
         end
     end
 
-    -- FIXME: double click, last_click_time equals 0 after release
-
     if input.is_mouse_released(state, 1) then
-        local mouse_pos = input.get_mouse_pos(state)
         local current_time = love.timer.getTime()
 
         if mouse.is_drag then
             mouse.is_drag = false
         else
-            if mouse.click_pos then
-                -- NOTE: double click check
-                if (current_time - mouse.last_click_time) < conf.click.double_click_threshold and
-                    mouse.last_click_time > 0 then
-                    mouse.is_double_click = true
-                else
-                    mouse.is_click = true
-                end
+            -- NOTE: double click check
+            if (current_time - mouse.last_click_time) < conf.click.double_click_threshold and
+                mouse.last_click_time > 0 then
+                mouse.is_double_click = true
+            else
+                mouse.is_click = true
             end
+            mouse.last_click_time = current_time
+            mouse.click_pos = input.get_mouse_pos(state)
         end
 
-        -- NOTE: clear click state
-        mouse.last_click_pos = nil
-        mouse.last_click_time = 0
-        mouse.click_pos = nil
+        mouse.press_pos = nil
+    end
+end
+
+---@param state State
+function input.clear(state)
+    state.input.mouse.is_click = false
+    state.input.mouse.is_double_click = false
+    -- state.input.mouse.click_pos = nil
+
+    for _, button in pairs(state.input.mouse.buttons) do
+        if (button.released) then
+            button.released = false
+        end
+    end
+
+    for _, button in pairs(state.input.keyboard.buttons) do
+        if (button.released) then
+            button.released = false
+        end
     end
 end
 
@@ -121,6 +134,8 @@ function input.mousepressed(state, x, y, button)
 
     state.input.mouse.buttons[button].pressed = true
     state.input.mouse.buttons[button].released = false
+    state.input.mouse.x = x
+    state.input.mouse.y = y
 end
 
 ---@param state State
@@ -142,24 +157,8 @@ end
 function input.mousereleased(state, x, y, button)
     state.input.mouse.buttons[button].released = true
     state.input.mouse.buttons[button].pressed = false
-end
-
----@param state State
-function input.clear(state)
-    state.input.mouse.is_click = false
-    state.input.mouse.is_double_click = false
-
-    for _, button in pairs(state.input.mouse.buttons) do
-        if (button.released) then
-            button.released = false
-        end
-    end
-
-    for _, button in pairs(state.input.keyboard.buttons) do
-        if (button.released) then
-            button.released = false
-        end
-    end
+    state.input.mouse.x = x
+    state.input.mouse.y = y
 end
 
 ---@param state State

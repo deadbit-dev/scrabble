@@ -1,6 +1,6 @@
 local tween = {}
 
-local system = import("core.system")
+local system = import("system")
 
 -- easing
 
@@ -390,7 +390,7 @@ end
 function tween.update_target(state, tween_uid, new_target)
     local tween_data = state.tweens[tween_uid]
     if tween_data and new_target then
-        copyTables(tween_data.target, {}, new_target)
+        copyTables(tween_data.target, tween_data.subject, new_target)
     end
 end
 

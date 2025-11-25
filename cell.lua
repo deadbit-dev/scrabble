@@ -1,6 +1,6 @@
 local cell = {}
 
-local system = import("core.system")
+local system = import("system")
 
 ---@param state State
 ---@param multiplier number

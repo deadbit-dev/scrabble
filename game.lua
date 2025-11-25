@@ -1,21 +1,20 @@
 local game = {}
 
-require("core.hotreload")
-
 local conf = import("conf")
 local state = import("state")
 local resources = import("resources")
 
-local input = import("core.input")
-local tween = import("core.tween")
+local input = import("input")
+
+local timer = import("timer")
+local tween = import("tween")
 
 local board = import("board")
 local player = import("player")
 local hand = import("hand")
 local element = import("element")
 local selection = import("selection")
-local drag = import("drag")
-local drop = import("drop")
+local dragdrop = import("drag&drop")
 local transition = import("transition")
 
 local cheats = import("cheats")
@@ -23,30 +22,20 @@ local tests = import("tests")
 
 function game.init()
     _G.uid_counter = 0
+    state:init()
 
     resources.load()
 
-    board.init(state, conf)
-    player.init(state, conf)
+    board.setup(state, conf)
+    player.setup(state, conf)
 
     tests.add_element_to_board(state, conf)
 end
 
-local function check_restart()
-    if not state.is_restart then
-        return
-    end
-
-    game.clear()
-    game.init()
-end
-
-local lurker = require("core.lurker")
----@param dt number
 function game.update(dt)
-    lurker.update()
+    if state.is_restart then game.init() end
 
-    check_restart()
+    timer.update(state, dt)
 
     input.update(state, conf, dt)
 
@@ -55,8 +44,7 @@ function game.update(dt)
     board.update(state, conf, dt)
     hand.update(state, conf, dt)
     selection.update(state, conf, dt)
-    drag.update(state, conf, dt)
-    drop.update(state, conf, dt)
+    dragdrop.update(state, conf, dt)
 
     transition.update(state, conf, dt)
     tween.update(state, dt)
@@ -72,80 +60,26 @@ function game.draw()
     element.draw(state, conf, resources)
 end
 
-function game.clear()
-    state = {
-        is_restart = false,
-        cells = {},
-        elements = {},
-        pool = {},
-        board = {
-            transform = { x = 0, y = 0, width = 0, height = 0, z_index = 0 },
-            cell_uids = {},
-            elem_uids = {}
-        },
-        hands = {},
-        players = {},
-        transitions = {},
-        tweens = {},
-        timers = {},
-        current_player_uid = nil,
-        selected_element_uid = nil,
-        drag = {
-            active = false,
-            element_uid = nil,
-            original_space = nil
-        },
-        input = {
-            mouse = {
-                x = 0,
-                y = 0,
-                dx = 0,
-                dy = 0,
-                buttons = {},
-                last_click_pos = nil,
-                last_click_time = 0,
-                click_pos = nil,
-                is_drag = false,
-                is_click = false,
-                is_double_click = false
-            },
-            keyboard = {
-                buttons = {}
-            }
-        }
-    }
-end
+function game.input(action_id, action)
+    if action_id == Action.KEY_PRESSED then
+        input.keypressed(state, action.key)
+    end
 
----@param key string
-function game.keypressed(key)
-    input.keypressed(state, key)
-end
+    if action_id == Action.KEY_RELEASED then
+        input.keyreleased(state, action.key)
+    end
 
----@param key string
-function game.keyreleased(key)
-    input.keyreleased(state, key)
-end
+    if action_id == Action.MOUSE_PRESSED then
+        input.mousepressed(state, action.x, action.y, action.button)
+    end
 
----@param x number
----@param y number
----@param button number
-function game.mousepressed(x, y, button)
-    input.mousepressed(state, x, y, button)
-end
+    if action_id == Action.MOUSE_MOVED then
+        input.mousemoved(state, action.x, action.y, action.dx, action.dy)
+    end
 
----@param x number
----@param y number
----@param dx number
----@param dy number
-function game.mousemoved(x, y, dx, dy)
-    input.mousemoved(state, x, y, dx, dy)
-end
-
----@param x number
----@param y number
----@param button number
-function game.mousereleased(x, y, button)
-    input.mousereleased(state, x, y, button)
+    if action_id == Action.MOUSE_RELEASED then
+        input.mousereleased(state, action.x, action.y, action.button)
+    end
 end
 
 return game

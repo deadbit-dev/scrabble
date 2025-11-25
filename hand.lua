@@ -1,12 +1,11 @@
 local hand = {}
 
 local utils = import("utils")
-local system = import("core.system")
-local element = import("element")
+local system = import("system")
 
 ---@param state State
 ---@return number
-function hand.init(state)
+function hand.setup(state)
     local hand_uid = system.generate_uid()
     state.hands[hand_uid] = {
         uid = hand_uid,
@@ -23,13 +22,13 @@ end
 ---@param elem_uid number
 function hand.add_element(state, hand_uid, index, elem_uid)
     state.hands[hand_uid].elem_uids[index] = elem_uid
-    element.set_space(state, elem_uid, {
+    state.elements[elem_uid].space = {
         type = SpaceType.HAND,
         data = {
             hand_uid = hand_uid,
             index = index
         }
-    })
+    }
 end
 
 ---@param state State
@@ -46,7 +45,7 @@ end
 function hand.get_empty_slot(state, hand_uid)
     local hand_data = state.hands[hand_uid]
     for index = 1, hand_data.size do
-        if not hand_data.elem_uids[index] then
+        if hand_data.elem_uids[index] == -1 then
             return index
         end
     end
@@ -57,7 +56,7 @@ end
 ---@param hand_uid number
 ---@param index number
 function hand.remove_element(state, hand_uid, index)
-    state.hands[hand_uid].elem_uids[index] = nil
+    state.hands[hand_uid].elem_uids[index] = -1
 end
 
 ---@param state State
@@ -82,7 +81,7 @@ function hand.is_empty(state, hand_uid)
     end
 
     for index = 1, hand_data.size do
-        if hand_data.elem_uids[index] then
+        if hand_data.elem_uids[index] ~= -1 then
             return false
         end
     end
@@ -202,14 +201,21 @@ end
 ---@param state State
 ---@param conf Config
 ---@param hand_uid number
-function hand.update_elements_transform(state, conf, hand_uid)
+local function update_elements_world_transform(state, conf, hand_uid)
     local hand_data = state.hands[hand_uid]
 
     for index, elem_uid in ipairs(hand_data.elem_uids) do
         if elem_uid then
             local elem = state.elements[elem_uid]
             if elem then
-                elem.transform = hand.get_world_transform_in_hand_space(state, conf, hand_uid, index)
+                local space_transform = hand.get_world_transform_in_hand_space(state, conf, hand_uid, index)
+                elem.world_transform = {
+                    x = space_transform.x + elem.transform.x,
+                    y = space_transform.y + elem.transform.y,
+                    width = space_transform.width + elem.transform.width,
+                    height = space_transform.height + elem.transform.height,
+                    z_index = space_transform.z_index + elem.transform.z_index
+                }
             end
         end
     end
@@ -221,7 +227,7 @@ end
 function hand.update(state, conf, dt)
     for hand_uid, _ in pairs(state.hands) do
         state.hands[hand_uid].transform = hand.get_world_transform(state, conf)
-        hand.update_elements_transform(state, conf, hand_uid)
+        update_elements_world_transform(state, conf, hand_uid)
     end
 end
 
