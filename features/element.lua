@@ -1,7 +1,5 @@
 local element = {}
 
-local system = import("system")
-
 ---@param state State
 ---@param conf Config
 ---@param letter string
@@ -11,7 +9,7 @@ local system = import("system")
 ---@param height number|nil
 ---@return number
 function element.create(state, conf, letter, x, y, width, height)
-    local elem_uid = system.generate_uid()
+    local elem_uid = GENERATE_UID()
     state.elements[elem_uid] = {
         uid = elem_uid,
         space = {

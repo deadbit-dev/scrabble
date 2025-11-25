@@ -1,6 +1,5 @@
 local player = {}
 
-local system = import("system")
 local hand = import("hand")
 local element = import("element")
 
@@ -8,7 +7,7 @@ local element = import("element")
 ---@param state State
 ---@param conf Config
 function player.setup(state, conf)
-    local player_uid = system.generate_uid()
+    local player_uid = GENERATE_UID()
     local hand_uid = hand.setup(state)
     state.players[player_uid] = { uid = player_uid, hand_uid = hand_uid, points = 0 }
     state.current_player_uid = player_uid

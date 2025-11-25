@@ -1,6 +1,6 @@
-local tween = {}
+---@diagnostic disable: deprecated
 
-local system = import("system")
+local tween = {}
 
 -- easing
 
@@ -355,7 +355,7 @@ function tween.create(state, duration, subject, target, easing, on_complete)
     easing = getEasingFunction(easing)
     checkNewParams(duration, subject, target, easing)
 
-    local tween_uid = system.generate_uid()
+    local tween_uid = GENERATE_UID()
 
     state.tweens[tween_uid] = {
         uid = tween_uid,

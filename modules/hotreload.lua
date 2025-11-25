@@ -1,4 +1,5 @@
--- NOTE: hotreload
+---@diagnostic disable: duplicate-set-field
+
 local lurker = require("lurker")
 local lume = require("lume")
 
@@ -17,7 +18,6 @@ _G.import = function(module_name)
     return require(module_name)
 end
 
----@diagnostic disable-next-line: duplicate-set-field
 lurker.postswap = function(f)
     local module = f:gsub("%.lua$", "")
 
@@ -29,7 +29,6 @@ lurker.postswap = function(f)
 
     for i = 1, #_G.dependencies[module] do
         local dep = _G.dependencies[module][i]
-        print('[updated dependence]: ' .. dep)
         -- TODO: need store dependencies with .lua instead of just name
         lurker.hotswapfile(dep .. ".lua")
         if (dep == "resources") then

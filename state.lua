@@ -104,7 +104,6 @@
 ---@field tweens {[number]: Tween}
 ---@field drag DragState
 ---@field selected_element_uid number|nil
----@field timers table[]
 ---@field current_player_uid number|nil
 ---@field input InputState
 
@@ -140,7 +139,6 @@ function state:init()
     self.players = {}
     self.transitions = {}
     self.tweens = {}
-    self.timers = {}
     self.current_player_uid = nil
     self.selected_element_uid = nil
     self.drag = {

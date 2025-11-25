@@ -1,3 +1,7 @@
+---@diagnostic disable: duplicate-set-field
+
+package.path = package.path .. ";modules/?.lua;features/?.lua"
+
 require("hotreload")
 
 local lurker = require("lurker")

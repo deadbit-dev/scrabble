@@ -1,12 +1,11 @@
 local hand = {}
 
 local utils = import("utils")
-local system = import("system")
 
 ---@param state State
 ---@return number
 function hand.setup(state)
-    local hand_uid = system.generate_uid()
+    local hand_uid = GENERATE_UID()
     state.hands[hand_uid] = {
         uid = hand_uid,
         elem_uids = {},

@@ -6,7 +6,6 @@ local resources = import("resources")
 
 local input = import("input")
 
-local timer = import("timer")
 local tween = import("tween")
 
 local board = import("board")
@@ -17,11 +16,16 @@ local selection = import("selection")
 local dragdrop = import("drag&drop")
 local transition = import("transition")
 
-local cheats = import("cheats")
-local tests = import("tests")
+
+function GENERATE_UID()
+    if (_G.uid_counter == nil) then _G.uid_counter = 0 end
+    _G.uid_counter = _G.uid_counter + 1
+    return _G.uid_counter
+end
 
 function game.init()
     _G.uid_counter = 0
+
     state:init()
 
     resources.load()
@@ -29,17 +33,32 @@ function game.init()
     board.setup(state, conf)
     player.setup(state, conf)
 
-    tests.add_element_to_board(state, conf)
+    -- NOTE: for test
+    board.add_element(state, conf, 6, 8, element.create(state, conf, "H"))
+    board.add_element(state, conf, 7, 8, element.create(state, conf, "E"))
+    board.add_element(state, conf, 8, 8, element.create(state, conf, "L"))
+    board.add_element(state, conf, 9, 8, element.create(state, conf, "L"))
+    board.add_element(state, conf, 10, 8, element.create(state, conf, "O"))
+    board.add_element(state, conf, 10, 7, element.create(state, conf, "W"))
+    board.add_element(state, conf, 10, 9, element.create(state, conf, "R"))
+    board.add_element(state, conf, 10, 10, element.create(state, conf, "L"))
+    board.add_element(state, conf, 10, 11, element.create(state, conf, "D"))
+    board.add_element(state, conf, 10, 12, element.create(state, conf, "S"))
 end
 
 function game.update(dt)
     if state.is_restart then game.init() end
 
-    timer.update(state, dt)
-
     input.update(state, conf, dt)
 
-    cheats.update(state, conf, dt)
+    if input.is_key_released(state, "f11") then
+        local fullscreen = not love.window.getFullscreen()
+        love.window.setFullscreen(fullscreen, "desktop")
+    end
+
+    if input.is_key_released(state, "r") then
+        state.is_restart = true
+    end
 
     board.update(state, conf, dt)
     hand.update(state, conf, dt)

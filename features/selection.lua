@@ -3,7 +3,6 @@ local selection = {}
 local log = import("log")
 local input = import("input")
 local tween = import("tween")
-local element = import("element")
 local hand = import("hand")
 local board = import("board")
 local transition = import("transition")

@@ -1,12 +1,10 @@
 local cell = {}
 
-local system = import("system")
-
 ---@param state State
 ---@param multiplier number
 ---@return number
 function cell.create(state, multiplier)
-    local cell_uid = system.generate_uid()
+    local cell_uid = GENERATE_UID()
     state.cells[cell_uid] = { uid = cell_uid, multiplier = multiplier }
     return cell_uid
 end
