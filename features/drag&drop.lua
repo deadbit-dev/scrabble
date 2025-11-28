@@ -135,7 +135,7 @@ local function drop(state, conf, dt)
             }, function()
                 local words = logic.recognize_words(conf, state, board_pos.x, board_pos.y)
                 for idx, word in ipairs(words) do
-                    print(word.start_pos.x, word.start_pos.y, word.end_pos.x, word.end_pos.y)
+                    print("FOUND WORD: ", word.start_pos.x, word.start_pos.y, word.end_pos.x, word.end_pos.y)
                 end
             end)
         elseif (space_type == SpaceType.HAND) then

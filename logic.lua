@@ -58,12 +58,10 @@ function logic.recognize_words(conf, state, x, y)
     local words = {}
     local h_word = find_word(conf, state, x, y, Direction.HORIZONTAL)
     local h_word_len = h_word.end_pos.x - h_word.start_pos.x + 1
-    print("HORIZONTAL", h_word_len)
-    if h_word_len > 0 then table.insert(words, h_word) end
+    if h_word_len > 1 then table.insert(words, h_word) end
     local v_word = find_word(conf, state, x, y, Direction.VERTICAL)
     local v_word_len = v_word.end_pos.y - v_word.start_pos.y + 1
-    print("VERTICAL", v_word_len)
-    if v_word_len > 0 then table.insert(words, v_word) end
+    if v_word_len > 1 then table.insert(words, v_word) end
     return words
 end
 
