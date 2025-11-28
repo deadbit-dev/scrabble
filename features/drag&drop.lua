@@ -8,6 +8,7 @@ local space = import("space")
 local tween = import("tween")
 local transition = import("transition")
 local utils = import("utils")
+local logic = import("logic")
 
 ---@param state State
 ---@param conf Config
@@ -112,6 +113,8 @@ local function update_drag(state, conf, dt)
     end
 end
 
+
+-- TODO: simplify, more readability
 ---@param state State
 ---@param conf Config
 ---@param dt number
@@ -126,10 +129,15 @@ local function drop(state, conf, dt)
                 log.warn("[DROP ELEMENT TO BOARD]: wrong position for board " .. mouse_pos.x .. ", " .. mouse_pos.y)
                 return
             end
-            transition.to(state, conf, state.drag.element_uid, 0.7, tween.easing.inOutCubic, {
+            transition.to(state, conf, state.drag.element_uid, 0.3, tween.easing.inOutCubic, {
                 type = SpaceType.BOARD,
                 data = board_pos
-            })
+            }, function()
+                local words = logic.recognize_words(conf, state, board_pos.x, board_pos.y)
+                for idx, word in ipairs(words) do
+                    print(word.start_pos.x, word.start_pos.y, word.end_pos.x, word.end_pos.y)
+                end
+            end)
         elseif (space_type == SpaceType.HAND) then
             local hand_uid = state.players[state.current_player_uid].hand_uid
             local empty_slot = hand.get_empty_slot(state, hand_uid)
@@ -140,7 +148,7 @@ local function drop(state, conf, dt)
                 return
             end
             log.log("[DROP ELEMENT TO HAND]: hand_uid: " .. hand_uid .. ", empty_slot: " .. empty_slot)
-            transition.to(state, conf, state.drag.element_uid, 0.7, tween.easing.inOutCubic, {
+            transition.to(state, conf, state.drag.element_uid, 0.3, tween.easing.inOutCubic, {
                 type = SpaceType.HAND,
                 data = {
                     hand_uid = hand_uid,
@@ -155,7 +163,7 @@ local function drop(state, conf, dt)
             -- NOTE: Try to place in hand first
             if empty_slot ~= nil then
                 log.log("[DROP ELEMENT TO HAND (SCREEN SPACE)]: hand_uid: " .. hand_uid .. ", empty_slot: " .. empty_slot)
-                transition.to(state, conf, state.drag.element_uid, 0.7, tween.easing.inOutCubic, {
+                transition.to(state, conf, state.drag.element_uid, 0.3, tween.easing.inOutCubic, {
                     type = SpaceType.HAND,
                     data = {
                         hand_uid = hand_uid,
@@ -168,12 +176,12 @@ local function drop(state, conf, dt)
                 if state.drag.original_space then
                     log.log("[DROP ELEMENT TO ORIGINAL POSITION]: type: " .. state.drag.original_space.type)
                     if state.drag.original_space.type == SpaceType.BOARD then
-                        transition.to(state, conf, state.drag.element_uid, 0.7, tween.easing.inOutCubic, {
+                        transition.to(state, conf, state.drag.element_uid, 0.3, tween.easing.inOutCubic, {
                             type = SpaceType.BOARD,
                             data = state.drag.original_space.data
                         })
                     elseif state.drag.original_space.type == SpaceType.HAND then
-                        transition.to(state, conf, state.drag.element_uid, 0.7, tween.easing.inOutCubic, {
+                        transition.to(state, conf, state.drag.element_uid, 0.3, tween.easing.inOutCubic, {
                             type = SpaceType.HAND,
                             data = {
                                 hand_uid = state.drag.original_space.data.hand_uid,
