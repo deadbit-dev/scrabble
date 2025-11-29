@@ -43,7 +43,6 @@ function game.init()
     board.add_element(state, conf, 10, 9, element.create(state, conf, "R"))
     board.add_element(state, conf, 10, 10, element.create(state, conf, "L"))
     board.add_element(state, conf, 10, 11, element.create(state, conf, "D"))
-    board.add_element(state, conf, 10, 12, element.create(state, conf, "S"))
 end
 
 function game.update(dt)

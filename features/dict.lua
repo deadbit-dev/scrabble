@@ -26,16 +26,34 @@ function dict.find_words_by_prefix(trie, prefix)
     return foundWords
 end
 
+-- function dict.word_exists(trie, word)
+--     local current_node = trie
+--     for i = 1, #word do
+--         local char = word:sub(i, i)
+--         if not current_node[char] then
+--             return false
+--         end
+--         current_node = current_node[char]
+--     end
+--     return current_node.complete == true
+-- end
+
 function dict.word_exists(trie, word)
-    local currentNode = trie
+    local node = trie
     for i = 1, #word do
         local char = word:sub(i, i)
-        if not currentNode[char] then
+        if not node[char] then
             return false
         end
-        currentNode = currentNode[char]
+        -- Если это не последняя буква, переходим в children
+        if i < #word then
+            node = node[char].children
+        else
+            -- Для последней буквы проверяем complete в текущем узле
+            node = node[char]
+        end
     end
-    return currentNode.complete == true
+    return node.complete == true
 end
 
 function dict.find_words_by_pattern(trie, pattern)

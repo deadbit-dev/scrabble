@@ -133,13 +133,10 @@ local function drop(state, conf, dt)
                 type = SpaceType.BOARD,
                 data = board_pos
             }, function()
-                local recognized_words = words.recognize(conf, state, board_pos.x, board_pos.y)
-                for idx, word in ipairs(recognized_words) do
-                    print("FOUND WORD: ", word.start_pos.x, word.start_pos.y, word.end_pos.x, word.end_pos.y)
-                    local char = state.board.elem_uids[word.start_pos.x][word.start_pos.y]
-                    if words.is_valid(word) then
-                        print("VALID WORD :)")
-                    end
+                local recognized_words = words.search(conf, state, board_pos.x, board_pos.y)
+                for idx, word_range in ipairs(recognized_words) do
+                    local word = words.get_word_by_pos_range(state, word_range.start_pos, word_range.end_pos)
+                    print("FOUND WORD: " .. word)
                 end
             end)
         elseif (space_type == SpaceType.HAND) then

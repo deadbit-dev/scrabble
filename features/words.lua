@@ -60,15 +60,27 @@ end
 ---@param x number
 ---@param y number
 ---@return {start_pos: Pos, end_pos: Pos }[]
-function words.recognize(conf, state, x, y)
-    local words = {}
+function words.search(conf, state, x, y)
+    local found_words = {}
     local h_word = find_word(conf, state, x, y, Direction.HORIZONTAL)
     local h_word_len = h_word.end_pos.x - h_word.start_pos.x + 1
-    if h_word_len > 1 then table.insert(words, h_word) end
+    if h_word_len > 1 then
+        local word = words.get_word_by_pos_range(state, h_word.start_pos, h_word.end_pos)
+        if words.is_valid(word) then
+            table.insert(found_words, h_word)
+        end
+    end
+
     local v_word = find_word(conf, state, x, y, Direction.VERTICAL)
     local v_word_len = v_word.end_pos.y - v_word.start_pos.y + 1
-    if v_word_len > 1 then table.insert(words, v_word) end
-    return words
+    if v_word_len > 1 then
+        local word = words.get_word_by_pos_range(state, v_word.start_pos, v_word.end_pos)
+        if words.is_valid(word) then
+            table.insert(found_words, v_word)
+        end
+    end
+
+    return found_words
 end
 
 ---@param word string
@@ -77,21 +89,34 @@ function words.is_valid(word)
     return dict.word_exists(resources.dict.en, word)
 end
 
----@param conf Config
 ---@param state State
 ---@param start_pos Pos
 ---@param end_pos Pos
 ---@return string
-function words.get_word_by_pos_range(conf, state, start_pos, end_pos)
+function words.get_word_by_pos_range(state, start_pos, end_pos)
     local word = ""
     local x, y = start_pos.x, start_pos.y
-    local dx, dy = (end_pos.x - start_pos.x), end_pos.y - start_pos.y
-    while x ~= end_pos.x and y ~= end_pos.y do
-        local elem_data = state.elements[state.board.elem_uids[x][y]]
+
+    local dx = end_pos.x - start_pos.x
+    local dy = end_pos.y - start_pos.y
+
+    local step_x = dx == 0 and 0 or (dx > 0 and 1 or -1)
+    local step_y = dy == 0 and 0 or (dy > 0 and 1 or -1)
+
+    local elem_uid = state.board.elem_uids[x][y]
+    local elem_data = state.elements[elem_uid]
+    word = word .. elem_data.letter
+
+    while x ~= end_pos.x or y ~= end_pos.y do
+        x = x + step_x
+        y = y + step_y
+
+        elem_uid = state.board.elem_uids[x][y]
+        elem_data = state.elements[elem_uid]
         word = word .. elem_data.letter
     end
 
-    return ""
+    return string.lower(word)
 end
 
 return words
