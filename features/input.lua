@@ -13,8 +13,8 @@ local function is_drag_time_exceeded(conf, drag_start_time)
 end
 
 ---@param conf Config
----@param drag_start_pos {x: number, y: number}
----@param current_pos {x: number, y: number}
+---@param drag_start_pos Pos
+---@param current_pos Pos
 ---@return boolean
 local function is_drag_distance_exceeded(conf, drag_start_pos, current_pos)
     if not drag_start_pos then
@@ -26,9 +26,9 @@ local function is_drag_distance_exceeded(conf, drag_start_pos, current_pos)
 end
 
 ---@param conf Config
----@param drag_start_pos {x: number, y: number}
+---@param drag_start_pos Pos
 ---@param drag_start_time number
----@param current_pos {x: number, y: number}
+---@param current_pos Pos
 ---@return boolean
 local function should_start_drag(conf, drag_start_pos, drag_start_time, current_pos)
     return is_drag_time_exceeded(conf, drag_start_time) or is_drag_distance_exceeded(conf, drag_start_pos, current_pos)
@@ -198,13 +198,13 @@ function input.is_mouse_released(state, button)
 end
 
 ---@param state State
----@return {x: number, y: number}
+---@return Pos
 function input.get_mouse_pos(state)
     return { x = state.input.mouse.x, y = state.input.mouse.y }
 end
 
 ---@param state State
----@return {x: number, y: number}|nil
+---@return Pos|nil
 function input.get_click_pos(state)
     return state.input.mouse.click_pos
 end
@@ -216,7 +216,7 @@ function input.get_last_click_time(state)
 end
 
 ---@param state State
----@return {x: number, y: number}|nil
+---@return Pos|nil
 function input.get_last_click_pos(state)
     return state.input.mouse.last_click_pos
 end

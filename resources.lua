@@ -1,7 +1,12 @@
 local resources = {}
 
+local json = import("json")
+local dict = import("dict")
+local log = import("log")
+
 resources.textures = {}
 resources.fonts = {}
+resources.dict = {}
 
 function resources.load()
     resources.textures.field = love.graphics.newImage("assets/field.png")
@@ -22,7 +27,20 @@ function resources.load()
         texture:setFilter("linear", "linear")
     end
 
+    log.log("Images loaded")
+
     resources.fonts.default = love.graphics.newFont("assets/default.ttf", 64)
+
+    log.log("Fonts loaded")
+
+    local success, content = pcall(love.filesystem.read, "dicts/en_trie.json")
+    log.log(success, content)
+
+    if success and content then
+        local trie = json.decode(content)
+        log.log("Loaded dict with " .. dict.count_words(trie) .. " words")
+        resources.dict.en = trie
+    end
 end
 
 return resources

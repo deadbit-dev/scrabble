@@ -1,4 +1,8 @@
-local logic = {}
+local words = {}
+
+local resources = import("resources")
+local dict = import("dict")
+local log = import("log")
 
 ---@enum Direction
 Direction = {
@@ -11,7 +15,7 @@ Direction = {
 ---@param state State
 ---@param x number
 ---@param y number
----@param dir table
+---@param dir Pos
 ---@return table
 local function find_empty_pos(conf, state, x, y, dir)
     local prev_x, prev_y = x, y
@@ -32,7 +36,7 @@ end
 ---@param x number
 ---@param y number
 ---@param dir Direction
----@return table
+---@return { start_pos: Pos, end_pos: Pos }
 local function find_word(conf, state, x, y, dir)
     if dir == Direction.HORIZONTAL then
         local lp = find_empty_pos(conf, state, x, y, { x = -1, y = 0 })
@@ -46,15 +50,17 @@ local function find_word(conf, state, x, y, dir)
         return { start_pos = tp, end_pos = bp }
     end
 
-    return {}
+    log.warn("Wrond direction " .. dir)
+
+    return { start_pos = { x = -1, y = -1 }, end_pos = { x = -1, y = -1 } }
 end
 
 ---@param conf Config
 ---@param state State
 ---@param x number
 ---@param y number
----@return table[]
-function logic.recognize_words(conf, state, x, y)
+---@return {start_pos: Pos, end_pos: Pos }[]
+function words.recognize(conf, state, x, y)
     local words = {}
     local h_word = find_word(conf, state, x, y, Direction.HORIZONTAL)
     local h_word_len = h_word.end_pos.x - h_word.start_pos.x + 1
@@ -67,8 +73,25 @@ end
 
 ---@param word string
 ---@return boolean
-function logic.is_valid_word(word)
-    return true
+function words.is_valid(word)
+    return dict.word_exists(resources.dict.en, word)
 end
 
-return logic
+---@param conf Config
+---@param state State
+---@param start_pos Pos
+---@param end_pos Pos
+---@return string
+function words.get_word_by_pos_range(conf, state, start_pos, end_pos)
+    local word = ""
+    local x, y = start_pos.x, start_pos.y
+    local dx, dy = (end_pos.x - start_pos.x), end_pos.y - start_pos.y
+    while x ~= end_pos.x and y ~= end_pos.y do
+        local elem_data = state.elements[state.board.elem_uids[x][y]]
+        word = word .. elem_data.letter
+    end
+
+    return ""
+end
+
+return words

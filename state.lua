@@ -65,6 +65,10 @@
 ---@field pressed boolean
 ---@field released boolean
 
+---@class Pos
+---@field x number
+---@field y number
+
 ---@class MouseState
 ---@field x number
 ---@field y number
@@ -73,9 +77,9 @@
 ---@field buttons {[number]: ButtonState}
 ---@field press_time number
 ---@field last_click_time number
----@field last_click_pos {x: number, y: number}|nil
----@field press_pos {x: number, y: number}|nil
----@field click_pos {x: number, y: number}|nil
+---@field last_click_pos Pos|nil
+---@field press_pos Pos|nil
+---@field click_pos Pos|nil
 ---@field is_drag boolean
 ---@field is_click boolean
 ---@field is_double_click boolean

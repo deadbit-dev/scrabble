@@ -105,7 +105,7 @@ end
 ---@param conf Config
 ---@param x number
 ---@param y number
----@return {x: number, y: number}|nil
+---@return Pos|nil
 function space.get_board_pos_by_world_pos(conf, x, y)
     -- NOTE: check if point is within board boundaries
     if not space.is_in_board_area(conf, x, y) then

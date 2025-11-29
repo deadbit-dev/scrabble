@@ -8,7 +8,7 @@ local space = import("space")
 local tween = import("tween")
 local transition = import("transition")
 local utils = import("utils")
-local logic = import("logic")
+local words = import("words")
 
 ---@param state State
 ---@param conf Config
@@ -133,9 +133,13 @@ local function drop(state, conf, dt)
                 type = SpaceType.BOARD,
                 data = board_pos
             }, function()
-                local words = logic.recognize_words(conf, state, board_pos.x, board_pos.y)
-                for idx, word in ipairs(words) do
+                local recognized_words = words.recognize(conf, state, board_pos.x, board_pos.y)
+                for idx, word in ipairs(recognized_words) do
                     print("FOUND WORD: ", word.start_pos.x, word.start_pos.y, word.end_pos.x, word.end_pos.y)
+                    local char = state.board.elem_uids[word.start_pos.x][word.start_pos.y]
+                    if words.is_valid(word) then
+                        print("VALID WORD :)")
+                    end
                 end
             end)
         elseif (space_type == SpaceType.HAND) then

@@ -18,8 +18,8 @@ function utils.lerp(a, b, t)
 end
 
 ---Calculates distance between two points
----@param pos1 {x: number, y: number}
----@param pos2 {x: number, y: number}
+---@param pos1 Pos
+---@param pos2 Pos
 ---@return number
 function utils.get_distance(pos1, pos2)
     local dx = pos2.x - pos1.x
@@ -28,7 +28,7 @@ function utils.get_distance(pos1, pos2)
 end
 
 ---@param transform Transform
----@param point {x: number, y: number}
+---@param point Pos
 ---@return boolean
 function utils.is_point_in_transform_bounds(transform, point)
     return point.x >= transform.x

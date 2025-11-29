@@ -76,7 +76,17 @@ function game.draw()
 
     board.draw(state, conf, resources)
     hand.draw(state, conf, resources)
-    element.draw(state, conf, resources)
+
+    -- NOTE: Sort elements by transform.z_index before drawing
+    local sorted_elements = {}
+    for _, elem in pairs(state.elements) do
+        table.insert(sorted_elements, elem)
+    end
+    table.sort(sorted_elements, function(a, b) return a.world_transform.z_index < b.world_transform.z_index end)
+
+    for _, elem in pairs(sorted_elements) do
+        element.draw(conf, resources, elem)
+    end
 end
 
 function game.input(action_id, action)

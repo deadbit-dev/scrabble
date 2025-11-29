@@ -121,7 +121,7 @@ end
 
 ---@param state State
 ---@param conf Config
----@param mouse_pos {x: number, y: number}
+---@param mouse_pos Pos
 local function handle_empty_board_click(state, conf, mouse_pos)
     -- NOTE: if has selected element put it on board
     if state.selected_element_uid then

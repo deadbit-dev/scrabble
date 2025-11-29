@@ -43,7 +43,7 @@ end
 ---@param conf Config
 ---@param resources table
 ---@param element_data Element
-local function draw_element(state, conf, resources, element_data)
+function element.draw(conf, resources, element_data)
     if not element_data or not element_data.transform then return end
 
     local world_transform = element_data.world_transform;
@@ -109,22 +109,6 @@ local function draw_element(state, conf, resources, element_data)
     love.graphics.print(element_data.points, world_transform.x / point_scale + points_scaledX,
         world_transform.y / point_scale + points_scaledY)
     love.graphics.pop()
-end
-
----@param state State
----@param conf Config
----@param resources table
-function element.draw(state, conf, resources)
-    -- NOTE: Sort elements by transform.z_index before drawing
-    local sorted_elements = {}
-    for _, elem in pairs(state.elements) do
-        table.insert(sorted_elements, elem)
-    end
-    table.sort(sorted_elements, function(a, b) return a.world_transform.z_index < b.world_transform.z_index end)
-
-    for _, elem in pairs(sorted_elements) do
-        draw_element(state, conf, resources, elem)
-    end
 end
 
 return element
