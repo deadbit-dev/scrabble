@@ -13,7 +13,7 @@ function player.setup(state, conf)
     state.current_player_uid = player_uid
 
     -- NOTE: for test
-    hand.add_element(state, hand_uid, 1, element.create(state, conf, "A"))
+    hand.add_element(state, hand_uid, 1, element.create(state, conf, "O"))
     hand.add_element(state, hand_uid, 2, element.create(state, conf, "B"))
     hand.add_element(state, hand_uid, 3, element.create(state, conf, "C"))
     hand.add_element(state, hand_uid, 4, element.create(state, conf, "D"))

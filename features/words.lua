@@ -1,6 +1,5 @@
 local words = {}
 
-local resources = import("resources")
 local dict = import("dict")
 local log = import("log")
 
@@ -57,16 +56,17 @@ end
 
 ---@param conf Config
 ---@param state State
+---@param resources table
 ---@param x number
 ---@param y number
 ---@return {start_pos: Pos, end_pos: Pos }[]
-function words.search(conf, state, x, y)
+function words.search(conf, state, resources, x, y)
     local found_words = {}
     local h_word = find_word(conf, state, x, y, Direction.HORIZONTAL)
     local h_word_len = h_word.end_pos.x - h_word.start_pos.x + 1
     if h_word_len > 1 then
         local word = words.get_word_by_pos_range(state, h_word.start_pos, h_word.end_pos)
-        if words.is_valid(word) then
+        if words.is_valid(resources.dict.en, word) then
             table.insert(found_words, h_word)
         end
     end
@@ -75,7 +75,7 @@ function words.search(conf, state, x, y)
     local v_word_len = v_word.end_pos.y - v_word.start_pos.y + 1
     if v_word_len > 1 then
         local word = words.get_word_by_pos_range(state, v_word.start_pos, v_word.end_pos)
-        if words.is_valid(word) then
+        if words.is_valid(resources.dict.en, word) then
             table.insert(found_words, v_word)
         end
     end
@@ -83,10 +83,11 @@ function words.search(conf, state, x, y)
     return found_words
 end
 
+---@param trie table
 ---@param word string
 ---@return boolean
-function words.is_valid(word)
-    return dict.word_exists(resources.dict.en, word)
+function words.is_valid(trie, word)
+    return dict.word_exists(trie, word)
 end
 
 ---@param state State

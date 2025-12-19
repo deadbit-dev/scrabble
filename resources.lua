@@ -34,7 +34,6 @@ function resources.load()
     log.log("Fonts loaded")
 
     local success, content = pcall(love.filesystem.read, "dicts/en_trie.json")
-    log.log(success, content)
 
     if success and content then
         local trie = json.decode(content)

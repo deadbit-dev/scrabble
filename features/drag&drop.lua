@@ -1,4 +1,4 @@
-local drag = {}
+local dragdrop = {}
 
 local log = import("log")
 local input = import("input")
@@ -117,8 +117,9 @@ end
 -- TODO: simplify, more readability
 ---@param state State
 ---@param conf Config
+---@param resources table
 ---@param dt number
-local function drop(state, conf, dt)
+local function drop(state, conf, resources, dt)
     if (state.drag.element_uid ~= nil) then
         local mouse_pos = input.get_mouse_pos(state)
         local space_type = space.get_space_type_by_position(state, conf, mouse_pos.x, mouse_pos.y)
@@ -133,7 +134,7 @@ local function drop(state, conf, dt)
                 type = SpaceType.BOARD,
                 data = board_pos
             }, function()
-                local recognized_words = words.search(conf, state, board_pos.x, board_pos.y)
+                local recognized_words = words.search(conf, state, resources, board_pos.x, board_pos.y)
                 for idx, word_range in ipairs(recognized_words) do
                     local word = words.get_word_by_pos_range(state, word_range.start_pos, word_range.end_pos)
                     print("FOUND WORD: " .. word)
@@ -204,8 +205,9 @@ end
 
 ---@param state State
 ---@param conf Config
+---@param resources table
 ---@param dt number
-function drag.update(state, conf, dt)
+function dragdrop.update(state, conf, resources, dt)
     if input.is_drag(state) and not state.drag.active then
         start_drag(state, conf)
     end
@@ -215,8 +217,8 @@ function drag.update(state, conf, dt)
     end
 
     if not input.is_drag(state) and state.drag.active then
-        drop(state, conf, dt)
+        drop(state, conf, resources, dt)
     end
 end
 
-return drag
+return dragdrop
