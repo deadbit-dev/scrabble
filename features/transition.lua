@@ -2,7 +2,12 @@ local transition = {}
 
 local space = import("space")
 local tween = import("tween")
-local element = import("element")
+
+---@class Transition
+---@field element_uid number
+---@field target_space SpaceInfo
+---@field tween_uid number
+---@field onComplete function|nil
 
 ---@param state State
 ---@param conf Config
@@ -21,14 +26,14 @@ function transition.to(state, conf, elem_uid, duration, easing, to, on_complete)
     local transition_index = #state.transitions + 1
     local wrapped_callback = function()
         transition.remove(state, transition_index)
-        space.add_element_to_space(state, conf, elem_uid, to)
+        space.add_element_to_space(state, elem_uid, to)
         if on_complete then
             on_complete()
         end
     end
 
     local tween_uid = tween.create(
-        state,
+        state.tweens,
         duration,
         element_data.world_transform,
         space.get_space_transform(state, conf, to),
@@ -50,19 +55,6 @@ end
 ---@param idx number
 function transition.remove(state, idx)
     table.remove(state.transitions, idx)
-end
-
----@param state State
----@param conf Config
----@param dt number
-function transition.update(state, conf, dt)
-    for i = #state.transitions, 1, -1 do
-        local trans = state.transitions[i]
-        if trans.tween_uid ~= nil then
-            local target_transform = space.get_space_transform(state, conf, trans.target_space)
-            tween.update_target(state, trans.tween_uid, target_transform)
-        end
-    end
 end
 
 -- function transition.pool_to_hand(state, conf, elem_uid, hand_uid, toIndex, onComplete)

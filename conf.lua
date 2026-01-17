@@ -21,11 +21,18 @@ end
 ---@field hand HandConfig Hand configuration settings
 ---@field elements ElementsConfig Elements configuration settings
 ---@field click ClickConfig Click configuration settings
+---@field step_time number Step time in seconds
 
 local conf = {}
 
+---@class Padding
+---@field top number
+---@field bottom number
+---@field left number
+---@field right number
+
 ---@class WindowConfig
----@field padding { top: number, bottom: number, left: number, right: number }
+---@field padding Padding
 conf.window = {
     padding = {
         top = 0.2,    -- NOTE: ~150px of 1280px
@@ -45,13 +52,6 @@ conf.colors = {
     black = { 0.27, 0.27, 0.27 }
 }
 
----@class FieldConfig
----@field size number Size of the game board (width/height in cells)
----@field gap_ratio { top: number, bottom: number, left: number, right: number } Ratios for field gaps
----@field max_size { width: number, height: number } Maximum board dimensions in pixels
----@field multipliers number[][] 2D array of cell multiplier values
----@field cell_gap_ratio number Ratio for gaps between cells
----@field cell_colors { shadow: number[], multiplier: table<number, number[]> } Colors for cell elements
 conf.field = {
     size = 15,
     gap_ratio = {
@@ -62,8 +62,8 @@ conf.field = {
     },
     -- TODO: will be better to calculate max size based on window size
     max_size = {
-        width = 600,
-        height = 600
+        width = 3000,
+        height = 3000
     },
     multipliers = {
         { 3, 1, 1, 2, 1, 1, 1, 3, 1, 1, 1, 2, 1, 1, 3 },
@@ -90,6 +90,14 @@ conf.field = {
             [2] = { 1, 0.78, 0.72 },   -- NOTE: #FFC8B8
             [3] = { 0.4, 0.37, 0.4 },  -- NOTE: #675F69
         }
+    },
+    cell_text_offset = 0.1,
+    cell_text_scale_factor = 0.7,
+    cell_text_colors = {
+        multipliers = {
+            [2] = { 0.25, 0.25, 0.25 }, -- NOTE: #404040
+            [3] = { 1, 0.78, 0.72 },    -- NOTE: #D2D2D2
+        }
     }
 }
 
@@ -105,10 +113,6 @@ conf.text = {
     offset = 0.1,                       -- NOTE: Text offset from cell edges
     colors = {
         element = { 0.25, 0.25, 0.25 }, -- NOTE: #404040
-        multiplier = {
-            [2] = { 0.25, 0.25, 0.25 }, -- NOTE: #404040
-            [3] = { 1, 0.78, 0.72 },    -- NOTE: #D2D2D2
-        },
     },
 
     element_padding = 0.15,           -- NOTE: Text offset from element edges
@@ -161,5 +165,7 @@ conf.elements = {
     arabic = require("alphabets.arabic"),
     greek = require("alphabets.greek")
 }
+
+conf.step_time = 10
 
 return conf

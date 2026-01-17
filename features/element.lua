@@ -1,16 +1,23 @@
 local element = {}
 
----@param state State
+---@class Element
+---@field uid number
+---@field space SpaceInfo
+---@field transform Transform
+---@field world_transform Transform
+---@field letter string
+---@field points number
+
 ---@param conf Config
 ---@param letter string
 ---@param x number|nil
 ---@param y number|nil
 ---@param width number|nil
 ---@param height number|nil
----@return number
-function element.create(state, conf, letter, x, y, width, height)
+---@return Element
+function element.create(conf, letter, x, y, width, height)
     local elem_uid = GENERATE_UID()
-    state.elements[elem_uid] = {
+    return {
         uid = elem_uid,
         space = {
             type = SpaceType.SCREEN,
@@ -36,14 +43,13 @@ function element.create(state, conf, letter, x, y, width, height)
         letter = letter,
         points = conf.elements.latin[letter].points
     }
-
-    return elem_uid
 end
 
 ---@param conf Config
----@param resources table
 ---@param element_data Element
-function element.draw(conf, resources, element_data)
+---@param texture any
+---@param font any
+function element.draw(conf, element_data, texture, font)
     if not element_data or not element_data.transform then return end
 
     local world_transform = element_data.world_transform;
@@ -54,28 +60,30 @@ function element.draw(conf, resources, element_data)
     local element_width = world_transform.width
     local element_height = world_transform.height
 
-    if resources.textures.element then
-        texture_scaleX = element_width / resources.textures.element:getWidth()
-        texture_scaleY = element_height / resources.textures.element:getHeight()
-        element_width = resources.textures.element:getWidth() * texture_scaleX
-        element_height = resources.textures.element:getHeight() * texture_scaleY
+    if texture then
+        texture_scaleX = element_width / texture:getWidth()
+        texture_scaleY = element_height / texture:getHeight()
+        element_width = texture:getWidth() * texture_scaleX
+        element_height = texture:getHeight() * texture_scaleY
     end
 
     -- NOTE: Draw element texture
     love.graphics.setColor(conf.colors.white)
-    if (resources.textures.element) then
-        love.graphics.draw(resources.textures.element, world_transform.x, world_transform.y, 0,
+    if (texture) then
+        love.graphics.draw(texture, world_transform.x, world_transform.y, 0,
             texture_scaleX,
             texture_scaleY)
     end
 
     -- NOTE: Setup font for text rendering
     love.graphics.setColor(conf.text.colors.element)
-    if (resources.fonts.default) then
-        love.graphics.setFont(resources.fonts.default)
+
+    if (font == nil) then
+        font = love.graphics.getFont()
     end
 
-    local font = love.graphics.getFont()
+    love.graphics.setFont(font)
+
     local text_width = font:getWidth(element_data.letter)
     local text_height = font:getHeight()
 

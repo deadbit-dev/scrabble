@@ -1,25 +1,16 @@
 local player = {}
 
-local hand = import("hand")
-local element = import("element")
+---@class Player
+---@field uid number
+---@field hand_uid number
+---@field points number
 
----Инициализирует игрока
----@param state State
----@param conf Config
-function player.setup(state, conf)
+
+---@param hand_uid number
+---@return Player
+function player.create(hand_uid)
     local player_uid = GENERATE_UID()
-    local hand_uid = hand.setup(state)
-    state.players[player_uid] = { uid = player_uid, hand_uid = hand_uid, points = 0 }
-    state.current_player_uid = player_uid
-
-    -- NOTE: for test
-    hand.add_element(state, hand_uid, 1, element.create(state, conf, "O"))
-    hand.add_element(state, hand_uid, 2, element.create(state, conf, "B"))
-    hand.add_element(state, hand_uid, 3, element.create(state, conf, "C"))
-    hand.add_element(state, hand_uid, 4, element.create(state, conf, "D"))
-    hand.add_element(state, hand_uid, 5, element.create(state, conf, "E"))
-    hand.add_element(state, hand_uid, 6, element.create(state, conf, "F"))
-    hand.add_element(state, hand_uid, 7, element.create(state, conf, "G"))
+    return { uid = player_uid, hand_uid = hand_uid, points = 0 }
 end
 
 return player

@@ -313,12 +313,12 @@ local function performEasingOnSubject(subject, target, initial, clock, duration,
     end
 end
 
----@param state State
+---@param tweens {[number]: Tween}
 ---@param tween_uid number
 ---@param dt number
 ---@return boolean is_completed
-local function update(state, tween_uid, dt)
-    local tween_data = state.tweens[tween_uid]
+local function update(tweens, tween_uid, dt)
+    local tween_data = tweens[tween_uid]
     if not tween_data then
         return true
     end
@@ -344,20 +344,30 @@ local function update(state, tween_uid, dt)
     end
 end
 
----@param state State
+---@class Tween
+---@field uid number
+---@field duration number
+---@field subject table
+---@field target table
+---@field easing function
+---@field clock number
+---@field initial table|nil
+---@field onComplete function|nil
+
+---@param tweens {[number]: Tween}
 ---@param duration number
 ---@param subject table
 ---@param target table
 ---@param easing function|string
 ---@param on_complete function|nil
 ---@return number tween_uid
-function tween.create(state, duration, subject, target, easing, on_complete)
+function tween.create(tweens, duration, subject, target, easing, on_complete)
     easing = getEasingFunction(easing)
     checkNewParams(duration, subject, target, easing)
 
     local tween_uid = GENERATE_UID()
 
-    state.tweens[tween_uid] = {
+    tweens[tween_uid] = {
         uid = tween_uid,
         duration = duration,
         subject = subject,
@@ -371,36 +381,27 @@ function tween.create(state, duration, subject, target, easing, on_complete)
     return tween_uid
 end
 
----@param state State
+---@param tweens {[number]: Tween}
 ---@param tween_uid number
----@return Tween|nil
-function tween.get(state, tween_uid)
-    return state.tweens[tween_uid]
+function tween.remove(tweens, tween_uid)
+    tweens[tween_uid] = nil
 end
 
----@param state State
----@param tween_uid number
-function tween.remove(state, tween_uid)
-    state.tweens[tween_uid] = nil
-end
-
----@param state State
----@param tween_uid number
+---@param tween_state Tween
 ---@param new_target table
-function tween.update_target(state, tween_uid, new_target)
-    local tween_data = state.tweens[tween_uid]
-    if tween_data and new_target then
-        copyTables(tween_data.target, tween_data.subject, new_target)
+function tween.update_target(tween_state, new_target)
+    if tween_state and new_target then
+        copyTables(tween_state.target, tween_state.subject, new_target)
     end
 end
 
----@param state State
+---@param tweens {[number]: Tween}
 ---@param dt number
-function tween.update(state, dt)
+function tween.update(tweens, dt)
     local tweens_to_remove = {}
 
-    for tween_uid, tween_data in pairs(state.tweens) do
-        local is_completed = update(state, tween_uid, dt)
+    for tween_uid, tween_data in pairs(tweens) do
+        local is_completed = update(tweens, tween_uid, dt)
         if is_completed then
             if tween_data.onComplete then
                 tween_data.onComplete()
@@ -410,7 +411,7 @@ function tween.update(state, dt)
     end
 
     for _, tween_uid in ipairs(tweens_to_remove) do
-        tween.remove(state, tween_uid)
+        tween.remove(tweens, tween_uid)
     end
 end
 

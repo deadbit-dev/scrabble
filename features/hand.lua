@@ -2,99 +2,97 @@ local hand = {}
 
 local utils = import("utils")
 
----@param state State
----@return number
-function hand.setup(state)
+---@class Hand
+---@field uid number
+---@field transform Transform
+---@field elem_uids (number)[]
+---@field size number
+
+
+---@param conf Config
+---@param transform Transform
+---@param texture any
+local function draw_bg(conf, transform, texture)
+    if (not texture) then
+        return
+    end
+
+    love.graphics.setColor(conf.colors.black)
+    love.graphics.draw(texture, transform.x, transform.y, 0,
+        transform.width / texture:getWidth(),
+        transform.height / texture:getHeight())
+end
+
+---@return Hand
+function hand.create()
     local hand_uid = GENERATE_UID()
-    state.hands[hand_uid] = {
+    return {
         uid = hand_uid,
         elem_uids = {},
         transform = { x = 0, y = 0, width = 0, height = 0, z_index = 0 },
         size = 7
     }
-    return hand_uid
 end
 
----@param state State
----@param hand_uid number
+---@param state Hand
 ---@param index number
 ---@param elem_uid number
-function hand.add_element(state, hand_uid, index, elem_uid)
-    state.hands[hand_uid].elem_uids[index] = elem_uid
-    state.elements[elem_uid].space = {
-        type = SpaceType.HAND,
-        data = {
-            hand_uid = hand_uid,
-            index = index
-        }
-    }
+function hand.add_element(state, index, elem_uid)
+    state.elem_uids[index] = elem_uid
 end
 
----@param state State
----@param hand_uid number
+---@param state Hand
 ---@param index number
 ---@return number
-function hand.get_elem_uid(state, hand_uid, index)
-    return state.hands[hand_uid].elem_uids[index]
+function hand.get_elem_uid(state, index)
+    return state.elem_uids[index]
 end
 
----@param state State
----@param hand_uid number
+---@param state Hand
 ---@return number|nil
-function hand.get_empty_slot(state, hand_uid)
-    local hand_data = state.hands[hand_uid]
-    for index = 1, hand_data.size do
-        if hand_data.elem_uids[index] == -1 then
+function hand.get_empty_slot(state)
+    for index = 1, state.size do
+        if state.elem_uids[index] == -1 then
             return index
         end
     end
     return nil
 end
 
----@param state State
----@param hand_uid number
+---@param state Hand
 ---@param index number
-function hand.remove_element(state, hand_uid, index)
-    state.hands[hand_uid].elem_uids[index] = -1
+function hand.remove_element(state, index)
+    state.elem_uids[index] = -1
 end
 
----@param state State
----@param hand_uid number
+---@param state Hand
 ---@param elem_uid number
 ---@return number|nil
-function hand.get_index(state, hand_uid, elem_uid)
-    for index, uid in ipairs(state.hands[hand_uid].elem_uids) do
+function hand.get_index(state, elem_uid)
+    for index, uid in ipairs(state.elem_uids) do
         if elem_uid == uid then
             return index
         end
     end
 end
 
----@param state State
----@param hand_uid number
+---@param state Hand
 ---@return boolean
-function hand.is_empty(state, hand_uid)
-    local hand_data = state.hands[hand_uid]
-    if not hand_data then
-        return true
-    end
-
-    for index = 1, hand_data.size do
-        if hand_data.elem_uids[index] ~= -1 then
+function hand.is_empty(state)
+    for index = 1, state.size do
+        if state.elem_uids[index] ~= -1 then
             return false
         end
     end
     return true
 end
 
----@param state State
+---@param state Hand
 ---@param conf Config
----@param hand_uid number
 ---@param index number
 ---@return Transform
-function hand.get_world_transform_in_hand_space(state, conf, hand_uid, index)
-    local hand_transform = hand.get_world_transform(state, conf)
-    local hand_data = state.hands[hand_uid]
+function hand.get_world_transform_in_hand_space(state, conf, index)
+    local hand_transform = hand.get_world_transform(conf)
     local available_width = hand_transform.width
     local available_height = hand_transform.height
 
@@ -102,7 +100,7 @@ function hand.get_world_transform_in_hand_space(state, conf, hand_uid, index)
     local element_size = math.min(available_width, available_height) * 0.5 -- 50% of smaller dimension
     local adaptive_spacing = element_size * conf.hand.element_spacing_ratio
     local offset_from_side = available_width * conf.hand.element_offset_from_side_ratio
-    local total_width = (hand_data.size * element_size + (hand_data.size - 1) * adaptive_spacing) +
+    local total_width = (state.size * element_size + (state.size - 1) * adaptive_spacing) +
         (offset_from_side * 2)
 
     if total_width > available_width then
@@ -128,10 +126,9 @@ function hand.get_world_transform_in_hand_space(state, conf, hand_uid, index)
     }
 end
 
----@param state State
 ---@param conf Config
 ---@return Transform
-function hand.get_world_transform(state, conf)
+function hand.get_world_transform(conf)
     local window_width = love.graphics.getWidth()
     local window_height = love.graphics.getHeight()
 
@@ -197,60 +194,11 @@ function hand.get_world_transform(state, conf)
     }
 end
 
----@param state State
+---@param state Hand
 ---@param conf Config
----@param hand_uid number
-local function update_elements_world_transform(state, conf, hand_uid)
-    local hand_data = state.hands[hand_uid]
-
-    for index, elem_uid in ipairs(hand_data.elem_uids) do
-        if elem_uid then
-            local elem = state.elements[elem_uid]
-            if elem then
-                local space_transform = hand.get_world_transform_in_hand_space(state, conf, hand_uid, index)
-                elem.world_transform = {
-                    x = space_transform.x + elem.transform.x,
-                    y = space_transform.y + elem.transform.y,
-                    width = space_transform.width + elem.transform.width,
-                    height = space_transform.height + elem.transform.height,
-                    z_index = space_transform.z_index + elem.transform.z_index
-                }
-            end
-        end
-    end
-end
-
----@param state State
----@param conf Config
----@param dt number
-function hand.update(state, conf, dt)
-    for hand_uid, _ in pairs(state.hands) do
-        state.hands[hand_uid].transform = hand.get_world_transform(state, conf)
-        update_elements_world_transform(state, conf, hand_uid)
-    end
-end
-
----@param conf Config
----@param resources table
----@param transform Transform
-local function draw_bg(conf, resources, transform)
-    if (not resources.textures.hand) then
-        return
-    end
-
-    love.graphics.setColor(conf.colors.black)
-    love.graphics.draw(resources.textures.hand, transform.x, transform.y, 0,
-        transform.width / resources.textures.hand:getWidth(),
-        transform.height / resources.textures.hand:getHeight())
-end
-
----@param state State
----@param conf Config
----@param resources table
-function hand.draw(state, conf, resources)
-    for _, hand_data in pairs(state.hands) do
-        draw_bg(conf, resources, hand_data.transform)
-    end
+---@param hand_texture any
+function hand.draw(state, conf, hand_texture)
+    draw_bg(conf, state.transform, hand_texture)
 end
 
 return hand

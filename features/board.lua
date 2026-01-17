@@ -1,300 +1,244 @@
 local board = {}
 
-local log = import("log")
+---@class FieldConfig
+---@field size number Size of the game board (width/height in cells)
+---@field gap_ratio { top: number, bottom: number, left: number, right: number } Ratios for field gaps
+---@field max_size { width: number, height: number } Maximum board dimensions in pixels
+---@field multipliers number[][] 2D array of cell multiplier values
+---@field cell_gap_ratio number Ratio for gaps between cells
+---@field cell_colors { shadow: number[], multiplier: table<number, number[]> } Colors for cell elements
+---@field cell_text_offset number Offset for cell text
+---@field cell_text_scale_factor number Scale factor for cell text
+---@field cell_text_colors { multipliers: table<number, number[]> } Colors for cell text
 
----@param state State
----@param conf Config
-function board.setup(state, conf)
-    for i = 1, conf.field.size do
-        state.board.cell_uids[i] = {}
-        state.board.elem_uids[i] = {}
-        for j = 1, conf.field.size do
-            board.add_cell(state, conf, i, j, board.create_cell(state, conf.field.multipliers[i][j]))
-        end
-    end
-end
+---@class Cell
+---@field uid number
+---@field multiplier number
 
----@param state State
+---@class Board
+---@field transform Transform
+---@field offset { x: number, y: number }
+---@field zoom number
+---@field cells {[number]: Cell}
+---@field cell_uids (number)[][]
+---@field elem_uids (number|nil)[][]
+
+
 ---@param multiplier number
----@return number
-function board.create_cell(state, multiplier)
-    local cell_uid = GENERATE_UID()
-    state.cells[cell_uid] = { uid = cell_uid, multiplier = multiplier }
-    return cell_uid
-end
-
----@param state State
----@param uid number
 ---@return Cell
-function board.get_cell(state, uid)
-    return state.cells[uid]
+local function create_cell(multiplier)
+    return { uid = GENERATE_UID(), multiplier = multiplier }
 end
 
----@param state State
----@param cell_uid number
-function board.remove_cell(state, cell_uid)
-    state.cells[cell_uid] = nil
+---@param transform Transform
+---@param field_texture any
+local function draw_bg(transform, field_texture, color)
+    if (not field_texture) then
+        return
+    end
+
+    love.graphics.setColor(color)
+    love.graphics.draw(field_texture, transform.x, transform.y, 0,
+        transform.width / field_texture:getWidth(),
+        transform.height / field_texture:getHeight())
 end
 
----@param conf Config
----@param resources table
----@param x number X position of the cell
----@param y number Y position of the cell
+---@param conf FieldConfig
+---@param transform Transform
+---@param cell_data Cell
 ---@param cell_size number Size of the cell
----@param cell Cell
-local function draw_cell(conf, resources, x, y, cell_size, cell)
+---@parms textures { cell: any, shadow: any, cross: any }
+local function draw_cell(conf, transform, cell_data, cell_size, textures, font)
     -- NOTE: draw cell
-    if resources.textures.cell then
-        love.graphics.setColor(conf.field.cell_colors.multiplier[cell.multiplier])
-        love.graphics.draw(resources.textures.cell, x, y, 0, cell_size / resources.textures.cell:getWidth(),
-            cell_size / resources.textures.cell:getHeight())
+    if textures.cell then
+        love.graphics.setColor(conf.cell_colors.multiplier[cell_data.multiplier])
+        love.graphics.draw(textures.cell, transform.x, transform.y, 0, cell_size / textures.cell:getWidth(),
+            cell_size / textures.cell:getHeight())
     end
 
     -- NOTE: draw cell shadow
-    if resources.textures.cell_shadow then
-        love.graphics.setColor(conf.field.cell_colors.shadow)
-        love.graphics.draw(resources.textures.cell_shadow, x, y, 0,
-            cell_size / resources.textures.cell_shadow:getWidth(),
-            cell_size / resources.textures.cell_shadow:getHeight())
+    if textures.shadow then
+        love.graphics.setColor(conf.cell_colors.shadow)
+        love.graphics.draw(textures.shadow, transform.x, transform.y, 0,
+            cell_size / textures.shadow:getWidth(),
+            cell_size / textures.shadow:getHeight())
     end
 
     -- NOTE: draw multiplier if greater than 1
-    if cell.multiplier > 1 then
+    if cell_data.multiplier > 1 then
         -- NOTE: draw cross
-        if resources.textures.cross then
-            local cross_scale = (cell_size * conf.text.letter_scale_factor * 0.4) /
-                math.max(resources.textures.cross:getWidth(), resources.textures.cross:getHeight())
+        if textures.cross then
+            local cross_scale = (cell_size * conf.cell_text_scale_factor * 0.4) /
+                math.max(textures.cross:getWidth(), textures.cross:getHeight())
 
-            local posX = (x + cell_size / 2) - cross_scale * resources.textures.cross:getWidth() / 2 - cell_size * 0.2
-            local posY = (y + cell_size / 2) - cross_scale * resources.textures.cross:getHeight() / 2
-            love.graphics.setColor(conf.text.colors.multiplier[cell.multiplier])
-            love.graphics.draw(resources.textures.cross, posX, posY, 0, cross_scale, cross_scale)
+            local posX = (transform.x + cell_size / 2) - cross_scale * textures.cross:getWidth() / 2 - cell_size * 0.2
+            local posY = (transform.y + cell_size / 2) - cross_scale * textures.cross:getHeight() / 2
+            love.graphics.setColor(conf.cell_text_colors.multipliers[cell_data.multiplier])
+            love.graphics.draw(textures.cross, posX, posY, 0, cross_scale, cross_scale)
         end
 
         -- NOTE: draw multiplier number
-        love.graphics.setColor(conf.text.colors.multiplier[cell.multiplier])
+        love.graphics.setColor(conf.cell_text_colors.multipliers[cell_data.multiplier])
 
-        if (resources.fonts.default) then
-            love.graphics.setFont(resources.fonts.default)
+        if (font == nil) then
+            font = love.graphics.getFont()
         end
 
-        local font = love.graphics.getFont()
-        local multiplier_text = tostring(cell.multiplier)
+        love.graphics.setFont(font)
+
+        local multiplier_text = tostring(cell_data.multiplier)
         local multiplier_width = font:getWidth(multiplier_text)
         local multiplier_height = font:getHeight()
-        local multiplier_scale = (cell_size * conf.text.letter_scale_factor) / multiplier_height
+        local multiplier_scale = (cell_size * conf.cell_text_scale_factor) / multiplier_height
 
         love.graphics.push()
         love.graphics.scale(multiplier_scale)
-        local scaledX = (x + (cell_size - multiplier_width * multiplier_scale) / 2 + cell_size * 0.25 - cell_size * conf.text.offset) /
+        local scaledX = (transform.x + (cell_size - multiplier_width * multiplier_scale) / 2 + cell_size * 0.25 - cell_size * conf.cell_text_offset) /
             multiplier_scale
-        local scaledY = (y + (cell_size - multiplier_height * multiplier_scale) / 2 - cell_size * conf.text.offset + cell_size * 0.1) /
+        local scaledY = (transform.y + (cell_size - multiplier_height * multiplier_scale) / 2 - cell_size * conf.cell_text_offset + cell_size * 0.1) /
             multiplier_scale
         love.graphics.print(multiplier_text, scaledX, scaledY)
         love.graphics.pop()
     end
 end
 
-local function update_elemenets_world_transform(state, conf)
-    for y = 1, conf.field.size do
-        for x = 1, conf.field.size do
-            local elem_uid = board.get_board_elem_uid(state, x, y)
-            if elem_uid then
-                local elem_data = state.elements[elem_uid]
-                local space_transform = board.get_world_transform_in_board_space(conf, x, y)
-                elem_data.world_transform = {
-                    x = space_transform.x + elem_data.transform.x,
-                    y = space_transform.y + elem_data.transform.y,
-                    width = space_transform.width + elem_data.transform.width,
-                    height = space_transform.height + elem_data.transform.height,
-                    z_index = space_transform.z_index + elem_data.transform.z_index
-                }
-            end
+---@param conf FieldConfig
+---@return Board
+function board.create(conf)
+    local state = {
+        transform = { x = 0, y = 0, width = 0, height = 0, z_index = 0 },
+        offset = { x = 0, y = 0 },
+        zoom = 1,
+        cells = {},
+        cell_uids = {},
+        elem_uids = {}
+    }
+
+    for i = 1, conf.size do
+        state.cell_uids[i] = {}
+        state.elem_uids[i] = {}
+        for j = 1, conf.size do
+            local cell = create_cell(conf.multipliers[i][j])
+            state.cell_uids[i][j] = cell.uid
+            state.cells[cell.uid] = cell
         end
     end
+
+    return state
 end
 
----@param state State
----@param conf Config
----@param dt number
-function board.update(state, conf, dt)
-    state.board.transform = board.get_world_transform(conf)
-    update_elemenets_world_transform(state, conf)
-end
-
----@param conf Config
----@param resources table
----@param transform Transform
-local function draw_bg(conf, resources, transform)
-    if (not resources.textures.field) then
-        return
+---@param state Board
+---@param x number
+---@param y number
+---@return Cell | nil
+function board.get_cell(state, x, y)
+    local uid = state.cell_uids[y][x]
+    if uid == nil then
+        return nil
     end
 
-    love.graphics.setColor(conf.colors.black)
-    love.graphics.draw(resources.textures.field, transform.x, transform.y, 0,
-        transform.width / resources.textures.field:getWidth(),
-        transform.height / resources.textures.field:getHeight())
+    return state.cells[state.cell_uids[y][x]]
 end
 
----@param state State
----@param conf Config
----@param resources table
-function board.draw(state, conf, resources)
-    draw_bg(conf, resources, state.board.transform)
+---@param state Board
+---@param conf FieldConfig
+---@param textures any
+---@param color any
+---@param font any
+function board.draw(state, conf, textures, color, font)
+    draw_bg(state.transform, textures.field, color)
 
-    -- TODO: separate cells rendering too
-    for i = 1, conf.field.size do
-        for j = 1, conf.field.size do
-            local cell_uid = board.get_board_cell_uid(state, j, i)
-            if cell_uid then
-                local cell_data = board.get_cell(state, cell_uid)
-                local transform = board.get_world_transform_in_board_space(conf, j, i)
+    for i = 1, conf.size do
+        for j = 1, conf.size do
+            local cell_data = board.get_cell(state, j, i)
+            if cell_data ~= nil then
+                local transform = board.get_world_transform_in_board_space(state, conf, j, i)
                 local cell_size = math.min(transform.width, transform.height)
-                draw_cell(conf, resources, transform.x, transform.y, cell_size, cell_data)
+
+                draw_cell(
+                    conf,
+                    transform,
+                    cell_data,
+                    cell_size,
+                    { cell = textures.cell, shadow = textures.shadow, cross = textures.cross },
+                    font
+                )
             end
         end
     end
 end
 
----@param state State
----@param x number
----@param y number
----@return number
-function board.get_board_cell_uid(state, x, y)
-    return state.board.cell_uids[x][y]
-end
+-- TODO: ???
 
----@param state State
----@param conf Config
----@param x number
----@param y number
----@param cell_uid number
-function board.add_cell(state, conf, x, y, cell_uid)
-    state.board.cell_uids[x][y] = cell_uid
-end
-
----@param state State
----@param x number
----@param y number
----@return number
-function board.get_board_elem_uid(state, x, y)
-    return state.board.elem_uids[x][y]
-end
-
----@param state State
+---@param state Board
 ---@param x number
 ---@param y number
 ---@param elem_uid number
-function board.add_element(state, conf, x, y, elem_uid)
-    state.board.elem_uids[x][y] = elem_uid
-    local element_data = state.elements[elem_uid]
-    element_data.space = {
-        type = SpaceType.BOARD,
-        data = {
-            x = x,
-            y = y
-        }
-    }
+function board.add_element(state, x, y, elem_uid)
+    state.elem_uids[y][x] = elem_uid
 end
 
--- TODO: by remove element from board, we need reset space for him to Screen, but how if board used in space ?
+---@param state Board
+---@param x number
+---@param y number
+---@return number
+function board.get_elem_uid(state, x, y)
+    return state.elem_uids[y][x]
+end
 
----@param state State
+---@param state Board
 ---@param x number
 ---@param y number
 function board.remove_element(state, x, y)
-    local elem_uid = state.board.elem_uids[x][y]
+    local elem_uid = state.elem_uids[y][x]
     if elem_uid then
-        state.board.elem_uids[x][y] = nil
+        state.elem_uids[y][x] = nil
     end
 end
 
----@param conf Config
----@return table containing cellSize, cellGap, and fieldGaps
-function board.get_layout(conf)
-    local window_width = love.graphics.getWidth()
-    local window_height = love.graphics.getHeight()
+-- TODO: по хорошему не должны тут отсчитывать от окна, мы должны принимать transform окна
 
-    -- NOTE: Calculate the total available space for the board using percentage-based padding
-    local available_width = window_width * (1 - (conf.window.padding.left + conf.window.padding.right))
-    local available_height = window_height * (1 - (conf.window.padding.top + conf.window.padding.bottom))
-
-    -- NOTE: Limit the board size to the maximum allowed size
-    if (conf.field.max_size.width < available_width) then
-        available_width = conf.field.max_size.width
-    end
-
-    if (conf.field.max_size.height < available_height) then
-        available_height = conf.field.max_size.height
-    end
-
-    -- NOTE: Calculate the space needed for all gaps
-    local cell_size = math.min(
-        available_width /
-        (conf.field.size + (conf.field.size - 1) * conf.field.cell_gap_ratio + conf.field.gap_ratio.left + conf.field.gap_ratio.right),
-        available_height /
-        (conf.field.size + (conf.field.size - 1) * conf.field.cell_gap_ratio + conf.field.gap_ratio.top + conf.field.gap_ratio.bottom)
-    )
-    local cell_gap = cell_size * conf.field.cell_gap_ratio
-    local field_gaps = {
-        top = cell_size * conf.field.gap_ratio.top,
-        bottom = cell_size * conf.field.gap_ratio.bottom,
-        left = cell_size * conf.field.gap_ratio.left,
-        right = cell_size * conf.field.gap_ratio.right
-    }
-
-    return {
-        cellSize = cell_size,
-        cellGap = cell_gap,
-        fieldGaps = field_gaps
-    }
-end
-
----@param conf Config
+---@param state Board
+---@param conf FieldConfig
 ---@return Transform
-function board.get_world_transform(conf)
-    local window_width = love.graphics.getWidth()
-    local window_height = love.graphics.getHeight()
-
-    -- NOTE: Calculate the total available space for the board using percentage-based padding
-    local available_width = window_width * (1 - (conf.window.padding.left + conf.window.padding.right))
-    local available_height = window_height * (1 - (conf.window.padding.top + conf.window.padding.bottom))
+function board.get_world_transform(state, conf)
+    local width = state.transform.width
+    local height = state.transform.height
 
     -- NOTE: Limit the board size to the maximum allowed size
-    if (conf.field.max_size.width < available_width) then
-        available_width = conf.field.max_size.width
+    if (conf.max_size.width < width) then
+        width = conf.max_size.width
     end
 
-    if (conf.field.max_size.height < available_height) then
-        available_height = conf.field.max_size.height
+    if (conf.max_size.height < height) then
+        height = conf.max_size.height
     end
 
     -- NOTE: Calculate the space needed for all gaps
-    local total_cell_gaps = conf.field.size - 1
+    local total_cell_gaps = conf.size - 1
     local cell_size = math.min(
-        available_width /
-        (conf.field.size + (conf.field.size - 1) * conf.field.cell_gap_ratio + conf.field.gap_ratio.left + conf.field.gap_ratio.right),
-        available_height /
-        (conf.field.size + (conf.field.size - 1) * conf.field.cell_gap_ratio + conf.field.gap_ratio.top + conf.field.gap_ratio.bottom)
+        width / (conf.size + (conf.size - 1) * conf.cell_gap_ratio + conf.gap_ratio.left + conf.gap_ratio.right),
+        height / (conf.size + (conf.size - 1) * conf.cell_gap_ratio + conf.gap_ratio.top + conf.gap_ratio.bottom)
     )
-    local cell_gap = cell_size * conf.field.cell_gap_ratio
+    local cell_gap = cell_size * conf.cell_gap_ratio
     local field_gaps = {
-        top = cell_size * conf.field.gap_ratio.top,
-        bottom = cell_size * conf.field.gap_ratio.bottom,
-        left = cell_size * conf.field.gap_ratio.left,
-        right = cell_size * conf.field.gap_ratio.right
+        top = cell_size * conf.gap_ratio.top,
+        bottom = cell_size * conf.gap_ratio.bottom,
+        left = cell_size * conf.gap_ratio.left,
+        right = cell_size * conf.gap_ratio.right
     }
 
     local total_horizontal_gaps = (cell_gap * total_cell_gaps) + field_gaps.left + field_gaps.right
     local total_vertical_gaps = (cell_gap * total_cell_gaps) + field_gaps.top + field_gaps.bottom
 
     -- NOTE: Calculate total board size including gaps
-    local board_width = (cell_size * conf.field.size) + total_horizontal_gaps
-    local board_height = (cell_size * conf.field.size) + total_vertical_gaps
+    local board_width = (cell_size * conf.size) + total_horizontal_gaps
+    local board_height = (cell_size * conf.size) + total_vertical_gaps
 
     -- NOTE: Calculate starting position to center the board
-    local startX = (window_width / 2) - (board_width / 2)
-    local startY = (window_height / 2) - (board_height / 2)
+    -- FIXME: x, y is right ?
+    local startX = state.transform.x - (board_width / 2)
+    local startY = state.transform.y - (board_height / 2)
 
     return {
         x = startX,
@@ -305,20 +249,56 @@ function board.get_world_transform(conf)
     }
 end
 
----@param conf Config
+---@param state Board
+---@param conf FieldConfig
 ---@param x number
 ---@param y number
 ---@return Transform
-function board.get_world_transform_in_board_space(conf, x, y)
-    local layout = board.get_layout(conf)
-    local transform = board.get_world_transform(conf)
+function board.get_world_transform_in_board_space(state, conf, x, y)
+    local layout = board.get_layout(state, conf)
     return {
-        x = transform.x + layout.fieldGaps.left +
+        x = state.transform.x + layout.fieldGaps.left +
             (x - 1) * (layout.cellSize + layout.cellGap),
-        y = transform.y + layout.fieldGaps.top + (y - 1) * (layout.cellSize + layout.cellGap),
+        y = state.transform.y + layout.fieldGaps.top + (y - 1) * (layout.cellSize + layout.cellGap),
         width = layout.cellSize,
         height = layout.cellSize,
-        z_index = -2
+        z_index = 0
+    }
+end
+
+---@param state Board
+---@param conf FieldConfig
+---@return table containing cellSize, cellGap, and fieldGaps
+function board.get_layout(state, conf)
+    local width = state.transform.width
+    local height = state.transform.height
+
+    -- NOTE: Limit the board size to the maximum allowed size
+    if (conf.max_size.width < width) then
+        width = conf.max_size.width
+    end
+
+    if (conf.max_size.height < height) then
+        height = conf.max_size.height
+    end
+
+    -- NOTE: Calculate the space needed for all gaps
+    local cell_size = math.min(
+        width / (conf.size + (conf.size - 1) * conf.cell_gap_ratio + conf.gap_ratio.left + conf.gap_ratio.right),
+        height / (conf.size + (conf.size - 1) * conf.cell_gap_ratio + conf.gap_ratio.top + conf.gap_ratio.bottom)
+    )
+    local cell_gap = cell_size * conf.cell_gap_ratio
+    local field_gaps = {
+        top = cell_size * conf.gap_ratio.top,
+        bottom = cell_size * conf.gap_ratio.bottom,
+        left = cell_size * conf.gap_ratio.left,
+        right = cell_size * conf.gap_ratio.right
+    }
+
+    return {
+        cellSize = cell_size,
+        cellGap = cell_gap,
+        fieldGaps = field_gaps
     }
 end
 

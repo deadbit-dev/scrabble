@@ -1,9 +1,41 @@
 -- FIXME/TODO: change input state once instead of into love input callback
 -- FIXME: почему то при долгом удерживании драг не определяется
+-- TODO: проверку дабл клика
 
 local input = {}
 
 local utils = import("utils")
+
+---@class Pos
+---@field x number
+---@field y number
+
+---@class ButtonState
+---@field pressed boolean
+---@field released boolean
+
+---@class MouseState
+---@field x number
+---@field y number
+---@field dx number
+---@field dy number
+---@field wheel number
+---@field buttons {[number]: ButtonState}
+---@field press_time number
+---@field last_click_time number
+---@field last_click_pos Pos|nil
+---@field press_pos Pos|nil
+---@field click_pos Pos|nil
+---@field is_drag boolean
+---@field is_click boolean
+---@field is_double_click boolean
+
+---@class KeyboardState
+---@field buttons {[string]: ButtonState}
+
+---@class InputState
+---@field mouse MouseState
+---@field keyboard KeyboardState
 
 ---@param conf Config
 ---@param drag_start_time number
@@ -34,11 +66,35 @@ local function should_start_drag(conf, drag_start_pos, drag_start_time, current_
     return is_drag_time_exceeded(conf, drag_start_time) or is_drag_distance_exceeded(conf, drag_start_pos, current_pos)
 end
 
----@param state State
+---@return InputState
+function input.init()
+    return {
+        mouse = {
+            x = 0,
+            y = 0,
+            dx = 0,
+            dy = 0,
+            wheel = 0,
+            buttons = {},
+            press_time = 0,
+            last_click_time = 0,
+            last_click_pos = nil,
+            click_pos = nil,
+            is_drag = false,
+            is_click = false,
+            is_double_click = false
+        },
+        keyboard = {
+            buttons = {}
+        }
+    }
+end
+
+---@param state InputState
 ---@param conf Config
 ---@param dt number
 function input.update(state, conf, dt)
-    local mouse = state.input.mouse
+    local mouse = state.mouse
 
     if input.is_mouse_pressed(state, 1) then
         if mouse.press_pos == nil then
@@ -80,102 +136,112 @@ function input.update(state, conf, dt)
     end
 end
 
----@param state State
+---@param state InputState
 function input.clear(state)
-    state.input.mouse.is_click = false
-    state.input.mouse.is_double_click = false
-    -- state.input.mouse.click_pos = nil
+    state.mouse.is_click = false
+    state.mouse.is_double_click = false
 
-    for _, button in pairs(state.input.mouse.buttons) do
+    state.mouse.dx = 0
+    state.mouse.dy = 0
+
+    state.mouse.wheel = 0
+
+    for _, button in pairs(state.mouse.buttons) do
         if (button.released) then
             button.released = false
         end
     end
 
-    for _, button in pairs(state.input.keyboard.buttons) do
+    for _, button in pairs(state.keyboard.buttons) do
         if (button.released) then
             button.released = false
         end
     end
 end
 
----@param state State
+---@param state InputState
 ---@param key string
 function input.keypressed(state, key)
-    if (state.input.keyboard.buttons[key] == nil) then
-        state.input.keyboard.buttons[key] = {
+    if (state.keyboard.buttons[key] == nil) then
+        state.keyboard.buttons[key] = {
             pressed = false,
             released = false
         }
     end
 
-    state.input.keyboard.buttons[key].pressed = true
-    state.input.keyboard.buttons[key].released = false
+    state.keyboard.buttons[key].pressed = true
+    state.keyboard.buttons[key].released = false
 end
 
----@param state State
+---@param state InputState
 ---@param key string
 function input.keyreleased(state, key)
-    state.input.keyboard.buttons[key].released = true
-    state.input.keyboard.buttons[key].pressed = false
+    state.keyboard.buttons[key].released = true
+    state.keyboard.buttons[key].pressed = false
 end
 
----@param state State
+---@param state InputState
 ---@param x number
 ---@param y number
 ---@param button number
 function input.mousepressed(state, x, y, button)
-    if (state.input.mouse.buttons[button] == nil) then
-        state.input.mouse.buttons[button] = {
+    if (state.mouse.buttons[button] == nil) then
+        state.mouse.buttons[button] = {
             pressed = false,
             released = false
         }
     end
 
-    state.input.mouse.buttons[button].pressed = true
-    state.input.mouse.buttons[button].released = false
-    state.input.mouse.x = x
-    state.input.mouse.y = y
+    state.mouse.buttons[button].pressed = true
+    state.mouse.buttons[button].released = false
+    state.mouse.x = x
+    state.mouse.y = y
 end
 
----@param state State
+---@param state InputState
 ---@param x number
 ---@param y number
 ---@param dx number
 ---@param dy number
 function input.mousemoved(state, x, y, dx, dy)
-    state.input.mouse.x = x
-    state.input.mouse.y = y
-    state.input.mouse.dx = dx
-    state.input.mouse.dy = dy
+    state.mouse.x = x
+    state.mouse.y = y
+    state.mouse.dx = dx
+    state.mouse.dy = dy
 end
 
----@param state State
+---@param state InputState
 ---@param x number
 ---@param y number
 ---@param button number
 function input.mousereleased(state, x, y, button)
-    state.input.mouse.buttons[button].released = true
-    state.input.mouse.buttons[button].pressed = false
-    state.input.mouse.x = x
-    state.input.mouse.y = y
+    state.mouse.buttons[button].released = true
+    state.mouse.buttons[button].pressed = false
+    state.mouse.x = x
+    state.mouse.y = y
 end
 
----@param state State
+---@param state InputState
+---@param delta number
+function input.mousewheelmoved(state, delta)
+    state.mouse.wheel = delta
+end
+
+---@param state InputState
 ---@param key string
 ---@return boolean
 function input.is_key_pressed(state, key)
-    return state.input.keyboard.buttons[key] and state.input.keyboard.buttons[key].pressed
+    return state.keyboard.buttons[key] and state.keyboard.buttons[key].pressed
 end
 
----@param state State
+---@param state InputState
 ---@param key string
 ---@return boolean
 function input.is_key_released(state, key)
-    return state.input.keyboard.buttons[key] and state.input.keyboard.buttons[key].released
+    return state.keyboard.buttons[key] and state.keyboard.buttons[key].released
 end
 
----@param state State
+---@param state InputState
 ---@param button number
 ---@return boolean
 function input.is_mouse_pressed(state, button)
@@ -183,10 +249,10 @@ function input.is_mouse_pressed(state, button)
         button = 1
     end
 
-    return state.input.mouse.buttons[button] and state.input.mouse.buttons[button].pressed
+    return state.mouse.buttons[button] and state.mouse.buttons[button].pressed
 end
 
----@param state State
+---@param state InputState
 ---@param button number
 ---@return boolean
 function input.is_mouse_released(state, button)
@@ -194,49 +260,13 @@ function input.is_mouse_released(state, button)
         button = 1
     end
 
-    return state.input.mouse.buttons[button] and state.input.mouse.buttons[button].released
+    return state.mouse.buttons[button] and state.mouse.buttons[button].released
 end
 
----@param state State
+---@param state InputState
 ---@return Pos
 function input.get_mouse_pos(state)
-    return { x = state.input.mouse.x, y = state.input.mouse.y }
-end
-
----@param state State
----@return Pos|nil
-function input.get_click_pos(state)
-    return state.input.mouse.click_pos
-end
-
----@param state State
----@return number
-function input.get_last_click_time(state)
-    return state.input.mouse.last_click_time
-end
-
----@param state State
----@return Pos|nil
-function input.get_last_click_pos(state)
-    return state.input.mouse.last_click_pos
-end
-
----@param state State
----@return boolean
-function input.is_drag(state)
-    return state.input.mouse.is_drag
-end
-
----@param state State
----@return boolean
-function input.is_click(state)
-    return state.input.mouse.is_click
-end
-
----@param state State
----@return boolean
-function input.is_double_click(state)
-    return state.input.mouse.is_double_click
+    return { x = state.mouse.x, y = state.mouse.y }
 end
 
 return input

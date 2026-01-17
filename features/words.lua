@@ -19,7 +19,7 @@ Direction = {
 local function find_empty_pos(conf, state, x, y, dir)
     local prev_x, prev_y = x, y
     while x >= 1 and x < conf.field.size and y >= 1 and y < conf.field.size do
-        if state.board.elem_uids[x][y] == nil then
+        if state.board.elem_uids[y][x] == nil then
             return { x = prev_x, y = prev_y }
         end
 
@@ -104,7 +104,7 @@ function words.get_word_by_pos_range(state, start_pos, end_pos)
     local step_x = dx == 0 and 0 or (dx > 0 and 1 or -1)
     local step_y = dy == 0 and 0 or (dy > 0 and 1 or -1)
 
-    local elem_uid = state.board.elem_uids[x][y]
+    local elem_uid = state.board.elem_uids[y][x]
     local elem_data = state.elements[elem_uid]
     word = word .. elem_data.letter
 
@@ -112,7 +112,7 @@ function words.get_word_by_pos_range(state, start_pos, end_pos)
         x = x + step_x
         y = y + step_y
 
-        elem_uid = state.board.elem_uids[x][y]
+        elem_uid = state.board.elem_uids[y][x]
         elem_data = state.elements[elem_uid]
         word = word .. elem_data.letter
     end
