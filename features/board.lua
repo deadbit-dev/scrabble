@@ -152,7 +152,7 @@ function board.draw(state, conf, textures, color, font)
         for j = 1, conf.size do
             local cell_data = board.get_cell(state, j, i)
             if cell_data ~= nil then
-                local transform = board.get_world_transform_in_board_space(state, conf, j, i)
+                local transform = board.get_space_transform(state, conf, j, i)
                 local cell_size = math.min(transform.width, transform.height)
 
                 draw_cell(
@@ -254,7 +254,7 @@ end
 ---@param x number
 ---@param y number
 ---@return Transform
-function board.get_world_transform_in_board_space(state, conf, x, y)
+function board.get_space_transform(state, conf, x, y)
     local layout = board.get_layout(state, conf)
     return {
         x = state.transform.x + layout.fieldGaps.left +

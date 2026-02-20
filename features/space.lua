@@ -65,7 +65,7 @@ end
 ---@return Transform
 function space.get_space_transform(state, conf, space_info)
     if (space_info.type == SpaceType.BOARD) then
-        return board.get_world_transform_in_board_space(state.board, conf.field, space_info.data.x, space_info.data.y)
+        return board.get_space_transform(state.board, conf.field, space_info.data.x, space_info.data.y)
     end
 
     if (space_info.type == SpaceType.HAND) then

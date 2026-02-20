@@ -69,7 +69,7 @@ local function update_board_elemenets_world_transform()
             local elem_uid = board.get_elem_uid(state.board, x, y)
             if elem_uid then
                 local elem_data = state.elements[elem_uid]
-                local space_transform = board.get_world_transform_in_board_space(state.board, conf.field, x, y)
+                local space_transform = board.get_space_transform(state.board, conf.field, x, y)
                 elem_data.world_transform = {
                     x = space_transform.x + elem_data.transform.x,
                     y = space_transform.y + elem_data.transform.y,
@@ -88,58 +88,32 @@ local function board_offset(offset)
 end
 
 local function board_zoom(pos, zoom)
-    local new_zoom = math.min(2.5, math.max(1, zoom))
+    local new_zoom = math.min(2, math.max(1, zoom))
     local old_zoom = state.board.zoom
 
-    board_offset({
-        x = state.board.offset.x - pos.x * (new_zoom / old_zoom - 1),
-        y = state.board.offset.y - pos.y * (new_zoom / old_zoom - 1)
-    })
+    local tracked_offset_x = state.board.offset.x - pos.x * (new_zoom / old_zoom - 1)
+    local tracked_offset_y = state.board.offset.y - pos.y * (new_zoom / old_zoom - 1)
+
+    state.board.offset.x = tracked_offset_x
+    state.board.offset.y = tracked_offset_y
 
     state.board.zoom = new_zoom
+end
 
-    -- local new_zoom = math.min(2.5, math.max(1.0, zoom))
-    -- local old_zoom = state.board.zoom
-
-    -- -- Вычисляем изменение зума
-    -- local zoom_delta = new_zoom - old_zoom
-
-    -- if zoom_delta > 0 then
-    --     -- УВЕЛИЧЕНИЕ: чистое слежение за курсором
-    --     state.board.offset.x = state.board.offset.x - pos.x * (new_zoom / old_zoom - 1)
-    --     state.board.offset.y = state.board.offset.y - pos.y * (new_zoom / old_zoom - 1)
-    -- elseif zoom_delta < 0 then
-    --     -- УМЕНЬШЕНИЕ: комбинация слежения и возврата к центру
-
-    --     -- 1. Сначала вычисляем pure tracked offset
-    --     local tracked_offset_x = state.board.offset.x - pos.x * (new_zoom / old_zoom - 1)
-    --     local tracked_offset_y = state.board.offset.y - pos.y * (new_zoom / old_zoom - 1)
-
-    --     -- 2. Определяем силу возврата к центру
-    --     -- Чем ближе new_zoom к 1.0, тем сильнее возвращаемся
-    --     local distance_from_one = new_zoom - 1.0 -- от 0.0 до 1.5
-    --     -- local return_strength = 1.0 - (distance_from_one / 1.5) -- от 1.0 до 0.0
-
-    --     -- Можно использовать нелинейную функцию для более плавного/резкого перехода
-    --     local return_strength = math.pow(1.0 - (distance_from_one / 1.5), 0.7)
-
-    --     -- 3. Интерполируем
-    --     state.board.offset.x = tracked_offset_x * (1 - return_strength)
-    --     state.board.offset.y = tracked_offset_y * (1 - return_strength)
-    -- end
-
-    -- state.board.zoom = new_zoom
+local function get_board_base_transform()
+    local window_width = love.graphics.getWidth()
+    local window_height = love.graphics.getHeight()
+    return {
+        x = window_width / 2,
+        y = window_height / 2,
+        width = window_width * (1 - (conf.window.padding.left + conf.window.padding.right)),
+        height = window_height * (1 - (conf.window.padding.top + conf.window.padding.bottom))
+    }
 end
 
 -- TODO: передать в board.update_transfrom посчитаный внешний transform
 local function update_board_transform()
-    -- NOTE: Calculate the total available space for the board using percentage-based padding
-    local window_width = love.graphics.getWidth()
-    local window_height = love.graphics.getHeight()
-    state.board.transform.x = window_width / 2
-    state.board.transform.y = window_height / 2
-    state.board.transform.width = window_width * (1 - (conf.window.padding.left + conf.window.padding.right))
-    state.board.transform.height = window_height * (1 - (conf.window.padding.top + conf.window.padding.bottom))
+    state.board.transform = get_board_base_transform()
     state.board.transform = board.get_world_transform(state.board, conf.field)
 end
 
@@ -751,8 +725,11 @@ function game.update(dt)
     update_board_transform()
     update_current_hand_transform()
 
-    if (not state.drag.active and state.input.mouse.is_drag) then
-        board_offset({ x = state.board.offset.x + state.input.mouse.dx, y = state.board.offset.y + state.input.mouse.dy })
+    if (not state.drag.active and state.input.mouse.is_drag and state.board.zoom > 1) then
+        local new_x = state.board.offset.x + state.input.mouse.dx
+        local new_y = state.board.offset.y + state.input.mouse.dy
+
+        board_offset({ x = new_x, y = new_y })
     end
 
     if state.input.mouse.wheel ~= 0 then
@@ -761,9 +738,25 @@ function game.update(dt)
                 x = state.input.mouse.x - (state.board.transform.x + state.board.offset.x),
                 y = state.input.mouse.y - (state.board.transform.y + state.board.offset.y)
             },
-            state.board.zoom + state.input.mouse.wheel * 0.1
+            state.board.zoom + state.input.mouse.wheel * 0.01
         )
     end
+
+
+
+    local base_transform = get_board_base_transform()
+    local t = (state.board.zoom - 1) / (2 - 1)
+    local dist = utils.lerp(0, (math.max(base_transform.width, base_transform.height) / 6) * state.board.zoom, t)
+    -- local dist = (math.max(base_transform.width, base_transform.height) / 8) * state.board.zoom
+    -- state.board.offset.x = math.max(math.min(state.board.offset.x, dist), -dist)
+    -- state.board.offset.y = math.max(math.min(state.board.offset.y, dist), -dist)
+
+    local max_dim = math.max(base_transform.width, base_transform.height)
+    local base_zoom_offset = (max_dim / 2) * (state.board.zoom - 1)
+    state.board.offset.x = math.max(math.min(state.board.offset.x, -base_zoom_offset + dist),
+        -base_zoom_offset - dist)
+    state.board.offset.y = math.max(math.min(state.board.offset.y, -base_zoom_offset + dist),
+        -base_zoom_offset - dist)
 
     apply_board_transform()
 
