@@ -90,14 +90,35 @@ end
 local function board_zoom(pos, zoom)
     local new_zoom = math.min(2, math.max(1, zoom))
     local old_zoom = state.board.zoom
+    local tracked_offset_x
+    local tracked_offset_y
 
-    local tracked_offset_x = state.board.offset.x - pos.x * (new_zoom / old_zoom - 1)
-    local tracked_offset_y = state.board.offset.y - pos.y * (new_zoom / old_zoom - 1)
+    if new_zoom < old_zoom and old_zoom > 1 then
+        -- NOTE: For zoom-out, only do proportional recentering to avoid overshoot.
+        local recenter_factor = (new_zoom - 1) / (old_zoom - 1)
+        tracked_offset_x = state.board.offset.x * recenter_factor
+        tracked_offset_y = state.board.offset.y * recenter_factor
+    else
+        local zoom_ratio = new_zoom / old_zoom
+        local shift_dx = (state.board.transform.width * (new_zoom - old_zoom)) / 2
+        local shift_dy = (state.board.transform.height * (new_zoom - old_zoom)) / 2
+        tracked_offset_x = state.board.offset.x - pos.x * (zoom_ratio - 1) + shift_dx
+        tracked_offset_y = state.board.offset.y - pos.y * (zoom_ratio - 1) + shift_dy
+    end
 
     state.board.offset.x = tracked_offset_x
     state.board.offset.y = tracked_offset_y
 
     state.board.zoom = new_zoom
+end
+
+local function get_board_zoom_origin(base_transform, offset, zoom)
+    local shift_x = (base_transform.width * (zoom - 1)) / 2
+    local shift_y = (base_transform.height * (zoom - 1)) / 2
+    return {
+        x = base_transform.x + offset.x - shift_x,
+        y = base_transform.y + offset.y - shift_y
+    }
 end
 
 local function get_board_base_transform()
@@ -118,8 +139,9 @@ local function update_board_transform()
 end
 
 local function apply_board_transform()
-    state.board.transform.x = state.board.transform.x + state.board.offset.x
-    state.board.transform.y = state.board.transform.y + state.board.offset.y
+    local zoom_origin = get_board_zoom_origin(state.board.transform, state.board.offset, state.board.zoom)
+    state.board.transform.x = zoom_origin.x
+    state.board.transform.y = zoom_origin.y
 
     state.board.transform.width = state.board.transform.width * state.board.zoom
     state.board.transform.height = state.board.transform.height * state.board.zoom
@@ -733,30 +755,20 @@ function game.update(dt)
     end
 
     if state.input.mouse.wheel ~= 0 then
+        local zoom_origin = get_board_zoom_origin(state.board.transform, state.board.offset, state.board.zoom)
         board_zoom(
             {
-                x = state.input.mouse.x - (state.board.transform.x + state.board.offset.x),
-                y = state.input.mouse.y - (state.board.transform.y + state.board.offset.y)
+                x = state.input.mouse.x - zoom_origin.x,
+                y = state.input.mouse.y - zoom_origin.y
             },
             state.board.zoom + state.input.mouse.wheel * 0.01
         )
     end
 
-
-
-    local base_transform = get_board_base_transform()
-    local t = (state.board.zoom - 1) / (2 - 1)
-    local dist = utils.lerp(0, (math.max(base_transform.width, base_transform.height) / 6) * state.board.zoom, t)
-    -- local dist = (math.max(base_transform.width, base_transform.height) / 8) * state.board.zoom
-    -- state.board.offset.x = math.max(math.min(state.board.offset.x, dist), -dist)
-    -- state.board.offset.y = math.max(math.min(state.board.offset.y, dist), -dist)
-
-    local max_dim = math.max(base_transform.width, base_transform.height)
-    local base_zoom_offset = (max_dim / 2) * (state.board.zoom - 1)
-    state.board.offset.x = math.max(math.min(state.board.offset.x, -base_zoom_offset + dist),
-        -base_zoom_offset - dist)
-    state.board.offset.y = math.max(math.min(state.board.offset.y, -base_zoom_offset + dist),
-        -base_zoom_offset - dist)
+    local max_offset_x = (state.board.transform.width * (state.board.zoom - 1)) / 2
+    local max_offset_y = (state.board.transform.height * (state.board.zoom - 1)) / 2
+    state.board.offset.x = math.max(math.min(state.board.offset.x, max_offset_x), -max_offset_x)
+    state.board.offset.y = math.max(math.min(state.board.offset.y, max_offset_y), -max_offset_y)
 
     apply_board_transform()
 
