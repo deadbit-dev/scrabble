@@ -109,6 +109,10 @@ function board.create(conf)
         transform = { x = 0, y = 0, width = 0, height = 0, z_index = 0 },
         offset = { x = 0, y = 0 },
         zoom = 1,
+        pan_raw_offset = { x = 0, y = 0 },
+        zoom_target = 1,
+        zoom_focus = { x = 0, y = 0 },
+        is_drag_view = false,
         cells = {},
         cell_uids = {},
         elem_uids = {}

@@ -82,20 +82,30 @@ local function update_board_elemenets_world_transform()
     end
 end
 
-local function board_offset(offset)
-    state.board.offset.x = offset.x
-    state.board.offset.y = offset.y
+local function apply_pan_resistance(value, min_value, max_value, resistance)
+    if value < min_value then
+        local over = min_value - value
+        return min_value - (over / (1 + over * resistance))
+    end
+
+    if value > max_value then
+        local over = value - max_value
+        return max_value + (over / (1 + over * resistance))
+    end
+
+    return value
 end
 
 local function board_zoom(pos, zoom)
-    local new_zoom = math.min(2, math.max(1, zoom))
+    local new_zoom = zoom
     local old_zoom = state.board.zoom
+    local min_zoom = conf.field.view.zoom.min
     local tracked_offset_x
     local tracked_offset_y
 
-    if new_zoom < old_zoom and old_zoom > 1 then
+    if new_zoom < old_zoom and old_zoom > min_zoom then
         -- NOTE: For zoom-out, only do proportional recentering to avoid overshoot.
-        local recenter_factor = (new_zoom - 1) / (old_zoom - 1)
+        local recenter_factor = utils.clamp((new_zoom - min_zoom) / (old_zoom - min_zoom), 0, 1)
         tracked_offset_x = state.board.offset.x * recenter_factor
         tracked_offset_y = state.board.offset.y * recenter_factor
     else
@@ -642,7 +652,6 @@ function game.init()
 
     state = {
         is_restart = false,
-        is_drag_view = false,
 
         current_player_uid = nil,
         next_player_uid = nil,
@@ -747,28 +756,71 @@ function game.update(dt)
     update_board_transform()
     update_current_hand_transform()
 
-    if (not state.drag.active and state.input.mouse.is_drag and state.board.zoom > 1) then
-        local new_x = state.board.offset.x + state.input.mouse.dx
-        local new_y = state.board.offset.y + state.input.mouse.dy
-
-        board_offset({ x = new_x, y = new_y })
+    local view_conf = conf.field.view
+    if state.input.mouse.wheel ~= 0 then
+        state.board.zoom_target = utils.clamp(
+            state.board.zoom_target + state.input.mouse.wheel * view_conf.zoom.wheel_sensitivity,
+            view_conf.zoom.min,
+            view_conf.zoom.max
+        )
+        state.board.zoom_focus.x = state.input.mouse.x
+        state.board.zoom_focus.y = state.input.mouse.y
     end
 
-    if state.input.mouse.wheel ~= 0 then
+    local zoom_diff = state.board.zoom_target - state.board.zoom
+    if math.abs(zoom_diff) > 0.0001 then
+        local t_zoom = 1 - math.exp(-view_conf.zoom.smooth_speed * dt)
+        local next_zoom = state.board.zoom + zoom_diff * t_zoom
         local zoom_origin = get_board_zoom_origin(state.board.transform, state.board.offset, state.board.zoom)
         board_zoom(
             {
-                x = state.input.mouse.x - zoom_origin.x,
-                y = state.input.mouse.y - zoom_origin.y
+                x = state.board.zoom_focus.x - zoom_origin.x,
+                y = state.board.zoom_focus.y - zoom_origin.y
             },
-            state.board.zoom + state.input.mouse.wheel * 0.01
+            next_zoom
         )
+    else
+        state.board.zoom = state.board.zoom_target
     end
 
     local max_offset_x = (state.board.transform.width * (state.board.zoom - 1)) / 2
     local max_offset_y = (state.board.transform.height * (state.board.zoom - 1)) / 2
-    state.board.offset.x = math.max(math.min(state.board.offset.x, max_offset_x), -max_offset_x)
-    state.board.offset.y = math.max(math.min(state.board.offset.y, max_offset_y), -max_offset_y)
+    local min_offset_x = -max_offset_x
+    local min_offset_y = -max_offset_y
+    local is_panning = (not state.drag.active and state.input.mouse.is_drag)
+    local should_return_to_bounds = (not state.input.mouse.is_drag)
+
+    if is_panning then
+        if not state.board.is_drag_view then
+            state.board.is_drag_view = true
+            state.board.pan_raw_offset.x = state.board.offset.x
+            state.board.pan_raw_offset.y = state.board.offset.y
+        end
+
+        state.board.pan_raw_offset.x = state.board.pan_raw_offset.x + state.input.mouse.dx
+        state.board.pan_raw_offset.y = state.board.pan_raw_offset.y + state.input.mouse.dy
+        state.board.offset.x = apply_pan_resistance(
+            state.board.pan_raw_offset.x,
+            min_offset_x,
+            max_offset_x,
+            view_conf.pan.overscroll_resistance
+        )
+        state.board.offset.y = apply_pan_resistance(
+            state.board.pan_raw_offset.y,
+            min_offset_y,
+            max_offset_y,
+            view_conf.pan.overscroll_resistance
+        )
+    elseif should_return_to_bounds then
+        state.board.is_drag_view = false
+        local target_x = utils.clamp(state.board.offset.x, min_offset_x, max_offset_x)
+        local target_y = utils.clamp(state.board.offset.y, min_offset_y, max_offset_y)
+        local t = math.min(1, dt * view_conf.pan.return_speed)
+        state.board.offset.x = state.board.offset.x + (target_x - state.board.offset.x) * t
+        state.board.offset.y = state.board.offset.y + (target_y - state.board.offset.y) * t
+        state.board.pan_raw_offset.x = state.board.offset.x
+        state.board.pan_raw_offset.y = state.board.offset.y
+    end
 
     apply_board_transform()
 

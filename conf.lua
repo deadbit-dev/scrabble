@@ -98,6 +98,18 @@ conf.field = {
             [2] = { 0.25, 0.25, 0.25 }, -- NOTE: #404040
             [3] = { 1, 0.78, 0.72 },    -- NOTE: #D2D2D2
         }
+    },
+    view = {
+        pan = {
+            overscroll_resistance = 0.01,
+            return_speed = 12
+        },
+        zoom = {
+            min = 1,
+            max = 2,
+            wheel_sensitivity = 0.05,
+            smooth_speed = 14
+        }
     }
 }
 

@@ -17,6 +17,14 @@ function utils.lerp(a, b, t)
     return a + (b - a) * t
 end
 
+---@param value number
+---@param min_value number
+---@param max_value number
+---@return number
+function utils.clamp(value, min_value, max_value)
+    return math.max(math.min(value, max_value), min_value)
+end
+
 ---Calculates distance between two points
 ---@param pos1 Pos
 ---@param pos2 Pos
