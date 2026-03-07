@@ -571,14 +571,32 @@ end
 ---@field active boolean
 ---@field element_uid number|nil
 ---@field original_space SpaceInfo|nil
+---@field press_element_uid number|nil
 
 ---@return DragState
 local function init_dnd()
     return {
         active = false,
         element_uid = nil,
-        original_space = nil
+        original_space = nil,
+        press_element_uid = nil
     }
+end
+
+local function detect_press_target()
+    if input.is_mouse_pressed(state.input, 1) and state.drag.press_element_uid == nil and not state.drag.active then
+        local mouse_pos = input.get_mouse_pos(state.input)
+        for _, elem in pairs(state.elements) do
+            if utils.is_point_in_transform_bounds(elem.world_transform, mouse_pos) then
+                state.drag.press_element_uid = elem.uid
+                break
+            end
+        end
+    end
+
+    if not input.is_mouse_pressed(state.input, 1) then
+        state.drag.press_element_uid = nil
+    end
 end
 
 local function update_dnd()
@@ -733,6 +751,7 @@ function game.update(dt)
     if state.is_restart then game.init() end
 
     input.update(state.input, conf, dt)
+    detect_press_target()
 
     if input.is_key_released(state.input, "f11") then
         local fullscreen = not love.window.getFullscreen()
@@ -787,7 +806,7 @@ function game.update(dt)
     local max_offset_y = (state.board.transform.height * (state.board.zoom - 1)) / 2
     local min_offset_x = -max_offset_x
     local min_offset_y = -max_offset_y
-    local is_panning = (not state.drag.active and state.input.mouse.is_drag)
+    local is_panning = (not state.drag.active and not state.drag.press_element_uid and state.input.mouse.is_drag)
     local should_return_to_bounds = (not state.input.mouse.is_drag)
 
     if is_panning then
