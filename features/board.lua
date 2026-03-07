@@ -19,6 +19,10 @@ local board = {}
 ---@field transform Transform
 ---@field offset { x: number, y: number }
 ---@field zoom number
+---@field zoom_target number
+---@field zoom_focus { x: number, y: number }
+---@field is_drag_view boolean
+---@field pan_raw_offset { x: number, y: number }
 ---@field cells {[number]: Cell}
 ---@field cell_uids (number)[][]
 ---@field elem_uids (number|nil)[][]
