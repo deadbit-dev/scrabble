@@ -112,7 +112,8 @@ end
 ---@param y number
 ---@return boolean
 function space.is_in_hand_area(state, conf, x, y)
-    local hand_transform = hand.get_world_transform(conf)
+    local player = state.players[state.current_player_uid]
+    local hand_transform = state.hands[player.hand_uid].transform
     return x >= hand_transform.x and x <= hand_transform.x + hand_transform.width and
         y >= hand_transform.y and y <= hand_transform.y + hand_transform.height
 end

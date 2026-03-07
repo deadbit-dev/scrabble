@@ -110,8 +110,8 @@ local function board_zoom(pos, zoom)
         tracked_offset_y = state.board.offset.y * recenter_factor
     else
         local zoom_ratio = new_zoom / old_zoom
-        local shift_dx = (state.board.transform.width * (new_zoom - old_zoom)) / 2
-        local shift_dy = (state.board.transform.height * (new_zoom - old_zoom)) / 2
+        local shift_dx = (state.board.base_transform.width * (new_zoom - old_zoom)) / 2
+        local shift_dy = (state.board.base_transform.height * (new_zoom - old_zoom)) / 2
         tracked_offset_x = state.board.offset.x - pos.x * (zoom_ratio - 1) + shift_dx
         tracked_offset_y = state.board.offset.y - pos.y * (zoom_ratio - 1) + shift_dy
     end
@@ -131,32 +131,33 @@ local function get_board_zoom_origin(base_transform, offset, zoom)
     }
 end
 
-local function get_board_base_transform()
-    local window_width = love.graphics.getWidth()
-    local window_height = love.graphics.getHeight()
-    return {
-        x = window_width / 2,
-        y = window_height / 2,
-        width = window_width * (1 - (conf.window.padding.left + conf.window.padding.right)),
-        height = window_height * (1 - (conf.window.padding.top + conf.window.padding.bottom))
-    }
-end
-
--- TODO: передать в board.update_transfrom посчитаный внешний transform
-local function update_board_transform()
-    state.board.transform = get_board_base_transform()
-    state.board.transform = board.get_world_transform(state.board, conf.field)
-end
-
 local function apply_board_transform()
-    local zoom_origin = get_board_zoom_origin(state.board.transform, state.board.offset, state.board.zoom)
-    state.board.transform.x = zoom_origin.x
-    state.board.transform.y = zoom_origin.y
-
-    state.board.transform.width = state.board.transform.width * state.board.zoom
-    state.board.transform.height = state.board.transform.height * state.board.zoom
+    local zoom_origin = get_board_zoom_origin(state.board.base_transform, state.board.offset, state.board.zoom)
+    state.board.transform = {
+        x = zoom_origin.x,
+        y = zoom_origin.y,
+        width = state.board.base_transform.width * state.board.zoom,
+        height = state.board.base_transform.height * state.board.zoom,
+        z_index = 0
+    }
 
     update_board_elemenets_world_transform()
+end
+
+--- NOTE: Recalculates all window-dependent layouts. Call on init and resize.
+local function recalculate_layout()
+    local window_width = love.graphics.getWidth()
+    local window_height = love.graphics.getHeight()
+    local base_width = window_width * (1 - (conf.window.padding.left + conf.window.padding.right))
+    local base_height = window_height * (1 - (conf.window.padding.top + conf.window.padding.bottom))
+    local center_x = window_width / 2
+    local center_y = window_height / 2
+
+    board.recalculate(state.board, conf.field, base_width, base_height, center_x, center_y)
+
+    for _, h in pairs(state.hands) do
+        hand.recalculate(h, conf)
+    end
 end
 
 local function update_hand_elements_world_transform(hand_uid)
@@ -177,10 +178,8 @@ local function update_hand_elements_world_transform(hand_uid)
     end
 end
 
-local function update_current_hand_transform()
-    local current_hand = get_current_hand()
-    current_hand.transform = hand.get_world_transform(conf)
-    update_hand_elements_world_transform(current_hand.uid)
+local function update_current_hand_elements()
+    update_hand_elements_world_transform(get_current_hand().uid)
 end
 
 local function update_transitions()
@@ -718,7 +717,12 @@ function game.init()
 
 
 
+    recalculate_layout()
     start_step_timer()
+end
+
+function game.resize()
+    recalculate_layout()
 end
 
 function game.input(action_id, action)
@@ -772,9 +776,6 @@ function game.update(dt)
         start_step_timer()
     end
 
-    update_board_transform()
-    update_current_hand_transform()
-
     local view_conf = conf.field.view
     if state.input.mouse.wheel ~= 0 then
         state.board.zoom_target = utils.clamp(
@@ -790,7 +791,7 @@ function game.update(dt)
     if math.abs(zoom_diff) > 0.0001 then
         local t_zoom = 1 - math.exp(-view_conf.zoom.smooth_speed * dt)
         local next_zoom = state.board.zoom + zoom_diff * t_zoom
-        local zoom_origin = get_board_zoom_origin(state.board.transform, state.board.offset, state.board.zoom)
+        local zoom_origin = get_board_zoom_origin(state.board.base_transform, state.board.offset, state.board.zoom)
         board_zoom(
             {
                 x = state.board.zoom_focus.x - zoom_origin.x,
@@ -802,8 +803,8 @@ function game.update(dt)
         state.board.zoom = state.board.zoom_target
     end
 
-    local max_offset_x = (state.board.transform.width * (state.board.zoom - 1)) / 2
-    local max_offset_y = (state.board.transform.height * (state.board.zoom - 1)) / 2
+    local max_offset_x = (state.board.base_transform.width * (state.board.zoom - 1)) / 2
+    local max_offset_y = (state.board.base_transform.height * (state.board.zoom - 1)) / 2
     local min_offset_x = -max_offset_x
     local min_offset_y = -max_offset_y
     local is_panning = (not state.drag.active and not state.drag.press_element_uid and state.input.mouse.is_drag)
@@ -842,6 +843,7 @@ function game.update(dt)
     end
 
     apply_board_transform()
+    update_current_hand_elements()
 
     update_selection()
     update_dnd()

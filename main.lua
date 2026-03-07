@@ -83,3 +83,7 @@ end
 function love.wheelmoved(x, y)
     game.input(Action.MOUSE_WHEEL_MOVED, { delta = y })
 end
+
+function love.resize(w, h)
+    game.resize()
+end

@@ -5,6 +5,7 @@ local utils = import("utils")
 ---@class Hand
 ---@field uid number
 ---@field transform Transform
+---@field slot_transforms Transform[]
 ---@field elem_uids (number)[]
 ---@field size number
 
@@ -30,6 +31,7 @@ function hand.create()
         uid = hand_uid,
         elem_uids = {},
         transform = { x = 0, y = 0, width = 0, height = 0, z_index = 0 },
+        slot_transforms = {},
         size = 7
     }
 end
@@ -87,12 +89,12 @@ function hand.is_empty(state)
     return true
 end
 
----@param state Hand
+---@param hand_transform Transform
 ---@param conf Config
+---@param hand_size number
 ---@param index number
 ---@return Transform
-function hand.get_world_transform_in_hand_space(state, conf, index)
-    local hand_transform = hand.get_world_transform(conf)
+local function calculate_slot_transform(hand_transform, conf, hand_size, index)
     local available_width = hand_transform.width
     local available_height = hand_transform.height
 
@@ -100,7 +102,7 @@ function hand.get_world_transform_in_hand_space(state, conf, index)
     local element_size = math.min(available_width, available_height) * 0.5 -- 50% of smaller dimension
     local adaptive_spacing = element_size * conf.hand.element_spacing_ratio
     local offset_from_side = available_width * conf.hand.element_offset_from_side_ratio
-    local total_width = (state.size * element_size + (state.size - 1) * adaptive_spacing) +
+    local total_width = (hand_size * element_size + (hand_size - 1) * adaptive_spacing) +
         (offset_from_side * 2)
 
     if total_width > available_width then
@@ -124,6 +126,24 @@ function hand.get_world_transform_in_hand_space(state, conf, index)
         height = element_size,
         z_index = 2
     }
+end
+
+---@param state Hand
+---@param conf Config
+function hand.recalculate(state, conf)
+    state.transform = hand.get_world_transform(conf)
+    state.slot_transforms = {}
+    for i = 1, state.size do
+        state.slot_transforms[i] = calculate_slot_transform(state.transform, conf, state.size, i)
+    end
+end
+
+---@param state Hand
+---@param conf Config
+---@param index number
+---@return Transform
+function hand.get_world_transform_in_hand_space(state, conf, index)
+    return state.slot_transforms[index]
 end
 
 ---@param conf Config

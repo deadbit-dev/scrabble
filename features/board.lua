@@ -15,8 +15,15 @@ local board = {}
 ---@field uid number
 ---@field multiplier number
 
+---@class BoardLayout
+---@field cellSize number
+---@field cellGap number
+---@field fieldGaps { top: number, bottom: number, left: number, right: number }
+
 ---@class Board
 ---@field transform Transform
+---@field base_transform Transform
+---@field layout BoardLayout
 ---@field offset { x: number, y: number }
 ---@field zoom number
 ---@field zoom_target number
@@ -111,6 +118,8 @@ end
 function board.create(conf)
     local state = {
         transform = { x = 0, y = 0, width = 0, height = 0, z_index = 0 },
+        base_transform = { x = 0, y = 0, width = 0, height = 0, z_index = 0 },
+        layout = { cellSize = 0, cellGap = 0, fieldGaps = { top = 0, bottom = 0, left = 0, right = 0 } },
         offset = { x = 0, y = 0 },
         zoom = 1,
         pan_raw_offset = { x = 0, y = 0 },
@@ -204,26 +213,16 @@ function board.remove_element(state, x, y)
     end
 end
 
--- TODO: по хорошему не должны тут отсчитывать от окна, мы должны принимать transform окна
-
 ---@param state Board
 ---@param conf FieldConfig
----@return Transform
-function board.get_world_transform(state, conf)
-    local width = state.transform.width
-    local height = state.transform.height
+---@param base_width number
+---@param base_height number
+---@param center_x number
+---@param center_y number
+function board.recalculate(state, conf, base_width, base_height, center_x, center_y)
+    local width = math.min(base_width, conf.max_size.width)
+    local height = math.min(base_height, conf.max_size.height)
 
-    -- NOTE: Limit the board size to the maximum allowed size
-    if (conf.max_size.width < width) then
-        width = conf.max_size.width
-    end
-
-    if (conf.max_size.height < height) then
-        height = conf.max_size.height
-    end
-
-    -- NOTE: Calculate the space needed for all gaps
-    local total_cell_gaps = conf.size - 1
     local cell_size = math.min(
         width / (conf.size + (conf.size - 1) * conf.cell_gap_ratio + conf.gap_ratio.left + conf.gap_ratio.right),
         height / (conf.size + (conf.size - 1) * conf.cell_gap_ratio + conf.gap_ratio.top + conf.gap_ratio.bottom)
@@ -236,24 +235,24 @@ function board.get_world_transform(state, conf)
         right = cell_size * conf.gap_ratio.right
     }
 
-    local total_horizontal_gaps = (cell_gap * total_cell_gaps) + field_gaps.left + field_gaps.right
-    local total_vertical_gaps = (cell_gap * total_cell_gaps) + field_gaps.top + field_gaps.bottom
+    local total_cell_gaps = conf.size - 1
+    local total_h_gaps = (cell_gap * total_cell_gaps) + field_gaps.left + field_gaps.right
+    local total_v_gaps = (cell_gap * total_cell_gaps) + field_gaps.top + field_gaps.bottom
+    local board_width = (cell_size * conf.size) + total_h_gaps
+    local board_height = (cell_size * conf.size) + total_v_gaps
 
-    -- NOTE: Calculate total board size including gaps
-    local board_width = (cell_size * conf.size) + total_horizontal_gaps
-    local board_height = (cell_size * conf.size) + total_vertical_gaps
-
-    -- NOTE: Calculate starting position to center the board
-    -- FIXME: x, y is right ?
-    local startX = state.transform.x - (board_width / 2)
-    local startY = state.transform.y - (board_height / 2)
-
-    return {
-        x = startX,
-        y = startY,
+    state.base_transform = {
+        x = center_x - board_width / 2,
+        y = center_y - board_height / 2,
         width = board_width,
         height = board_height,
         z_index = 0
+    }
+
+    state.layout = {
+        cellSize = cell_size,
+        cellGap = cell_gap,
+        fieldGaps = field_gaps
     }
 end
 
@@ -263,50 +262,32 @@ end
 ---@param y number
 ---@return Transform
 function board.get_space_transform(state, conf, x, y)
-    local layout = board.get_layout(state, conf)
+    local zoom = state.zoom
+    local layout = state.layout
     return {
-        x = state.transform.x + layout.fieldGaps.left +
-            (x - 1) * (layout.cellSize + layout.cellGap),
-        y = state.transform.y + layout.fieldGaps.top + (y - 1) * (layout.cellSize + layout.cellGap),
-        width = layout.cellSize,
-        height = layout.cellSize,
+        x = state.transform.x + layout.fieldGaps.left * zoom + (x - 1) * (layout.cellSize + layout.cellGap) * zoom,
+        y = state.transform.y + layout.fieldGaps.top * zoom + (y - 1) * (layout.cellSize + layout.cellGap) * zoom,
+        width = layout.cellSize * zoom,
+        height = layout.cellSize * zoom,
         z_index = 0
     }
 end
 
+--- NOTE: Returns zoomed layout values for external use
 ---@param state Board
 ---@param conf FieldConfig
----@return table containing cellSize, cellGap, and fieldGaps
+---@return BoardLayout
 function board.get_layout(state, conf)
-    local width = state.transform.width
-    local height = state.transform.height
-
-    -- NOTE: Limit the board size to the maximum allowed size
-    if (conf.max_size.width < width) then
-        width = conf.max_size.width
-    end
-
-    if (conf.max_size.height < height) then
-        height = conf.max_size.height
-    end
-
-    -- NOTE: Calculate the space needed for all gaps
-    local cell_size = math.min(
-        width / (conf.size + (conf.size - 1) * conf.cell_gap_ratio + conf.gap_ratio.left + conf.gap_ratio.right),
-        height / (conf.size + (conf.size - 1) * conf.cell_gap_ratio + conf.gap_ratio.top + conf.gap_ratio.bottom)
-    )
-    local cell_gap = cell_size * conf.cell_gap_ratio
-    local field_gaps = {
-        top = cell_size * conf.gap_ratio.top,
-        bottom = cell_size * conf.gap_ratio.bottom,
-        left = cell_size * conf.gap_ratio.left,
-        right = cell_size * conf.gap_ratio.right
-    }
-
+    local zoom = state.zoom
     return {
-        cellSize = cell_size,
-        cellGap = cell_gap,
-        fieldGaps = field_gaps
+        cellSize = state.layout.cellSize * zoom,
+        cellGap = state.layout.cellGap * zoom,
+        fieldGaps = {
+            top = state.layout.fieldGaps.top * zoom,
+            bottom = state.layout.fieldGaps.bottom * zoom,
+            left = state.layout.fieldGaps.left * zoom,
+            right = state.layout.fieldGaps.right * zoom
+        }
     }
 end
 
