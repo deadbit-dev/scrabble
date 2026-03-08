@@ -185,8 +185,9 @@ conf.elements = {
 conf.step_time = 10
 
 conf.hand_animation = {
-    shrink_duration = 0.22,
-    grow_duration   = 0.38,
+    shrink_duration  = 0.22,
+    grow_duration    = 0.38,
+    compact_duration = 0.15,
 }
 
 return conf

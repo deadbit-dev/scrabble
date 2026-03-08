@@ -475,6 +475,27 @@ local function update_selection()
 end
 
 
+local function compact_hand(hand_uid)
+    local hand_state = state.hands[hand_uid]
+
+    -- collect present elements in slot order
+    local present = {}
+    for old_index = 1, hand_state.size do
+        local uid = hand_state.elem_uids[old_index]
+        if uid and uid ~= -1 then
+            table.insert(present, { uid = uid, old_index = old_index })
+        end
+    end
+
+    -- animate elements that need to shift to a new slot
+    for new_index, item in ipairs(present) do
+        if item.old_index ~= new_index then
+            transition.to(state, conf, item.uid, conf.hand_animation.compact_duration,
+                tween.easing.outQuad, space.hand(hand_uid, new_index))
+        end
+    end
+end
+
 local function start_drag()
     local elem_uid = state.drag.press_element_uid
     if not elem_uid then return end
@@ -494,6 +515,7 @@ local function start_drag()
 
     if type == SpaceType.HAND then
         hand.remove_element(state.hands[data.hand_uid], data.index)
+        compact_hand(data.hand_uid)
     elseif type == SpaceType.BOARD then
         board.remove_element(state.board, data.x, data.y)
     end
