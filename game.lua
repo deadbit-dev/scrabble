@@ -468,26 +468,7 @@ end
 
 
 local function start_drag()
-    local click_pos = input.get_mouse_pos(state.input)
-    if not click_pos then return end
-
-    -- NOTE: find element in click pos
-    local elem_uid = nil
-    for _, elem in pairs(state.elements) do
-        -- local space_transform = space.get_space_transform(state, conf, elem.space)
-        -- local world_transform = {
-        --     x = space_transform.x + elem.transform.x,
-        --     y = space_transform.y + elem.transform.y,
-        --     width = space_transform.width,
-        --     height = space_transform.height,
-        --     z_index = space_transform.z_index
-        -- }
-        if utils.is_point_in_transform_bounds(elem.world_transform, click_pos) then
-            elem_uid = elem.uid
-            break
-        end
-    end
-
+    local elem_uid = state.drag.press_element_uid
     if not elem_uid then return end
 
     local element_data = state.elements[elem_uid]
@@ -640,11 +621,16 @@ end
 local function detect_press_target()
     if input.is_mouse_pressed(state.input, 1) and state.drag.press_element_uid == nil and not state.drag.active then
         local mouse_pos = input.get_mouse_pos(state.input)
+        local current_hand_uid = get_current_hand().uid
         for _, elem in pairs(state.elements) do
+            if elem.space and elem.space.type == SpaceType.HAND and elem.space.data.hand_uid ~= current_hand_uid then
+                goto continue
+            end
             if utils.is_point_in_transform_bounds(elem.world_transform, mouse_pos) then
                 state.drag.press_element_uid = elem.uid
                 break
             end
+            ::continue::
         end
     end
 
