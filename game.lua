@@ -39,10 +39,10 @@ local utils = import("utils")
 ---@field input InputState
 local state = {}
 
-local function create_player()
+local function create_player(name)
     local hand_state = hand.create()
     state.hands[hand_state.uid] = hand_state
-    local player_state = player.create(hand_state.uid)
+    local player_state = player.create(hand_state.uid, name)
     state.players[player_state.uid] = player_state
     return player_state.uid
 end
@@ -194,9 +194,13 @@ end
 
 local function draw_elements(from_z_index, to_z_index)
     -- NOTE: Sort elements by transform.z_index before drawing
+    local current_hand_uid = get_current_hand().uid
     local sorted_elements = table.filter(
         state.elements,
         function(value)
+            if value.space and value.space.type == SpaceType.HAND and value.space.data.hand_uid ~= current_hand_uid then
+                return false
+            end
             return value.world_transform.z_index >= from_z_index and
                 (to_z_index == nil or value.world_transform.z_index < to_z_index)
         end
@@ -221,18 +225,69 @@ local function draw_board()
 end
 
 local function draw_stats()
-    local window_width = love.graphics.getWidth()
+    local window_width  = love.graphics.getWidth()
     local window_height = love.graphics.getHeight()
+    local scale = math.min(window_width / conf.window.reference_width, window_height / conf.window.reference_height)
 
-    love.graphics.print("NIK1", window_width * 0.05, window_height * 0.025)
-    love.graphics.print("100", window_width * 0.05, window_height * 0.025 + 50)
+    local font = resources.fonts.default
+    love.graphics.setFont(font)
 
-    love.graphics.print("NIK2", window_width * 0.75, window_height * 0.025)
-    love.graphics.print("300", window_width * 0.75, window_height * 0.025 + 50)
+    local positions = {
+        { x = window_width * 0.05, align = "left" },
+        { x = window_width * 0.95, align = "right" },
+    }
+
+    for i, uid in ipairs(state.player_order) do
+        local p = state.players[uid]
+        if not p then goto continue end
+
+        local is_current = (uid == state.current_player_uid)
+        local pos = positions[i]
+        local y = window_height * 0.025
+
+        if is_current then
+            love.graphics.setColor(conf.colors.black)
+        else
+            love.graphics.setColor(0.6, 0.6, 0.6)
+        end
+
+        local points_str  = tostring(p.points)
+        local name_width  = font:getWidth(p.name)   * scale
+        local points_width = font:getWidth(points_str) * scale
+        local line_height = font:getHeight() * scale
+
+        local x_name   = pos.align == "right" and (pos.x - name_width)   or pos.x
+        local x_points = pos.align == "right" and (pos.x - points_width) or pos.x
+
+        love.graphics.print(p.name,    x_name,   y,                0, scale, scale)
+        love.graphics.print(points_str, x_points, y + line_height, 0, scale, scale)
+
+        ::continue::
+    end
 end
 
 local function draw_step_timer()
+    if state.step_timer == nil then return end
 
+    local window_width  = love.graphics.getWidth()
+    local window_height = love.graphics.getHeight()
+    local scale = math.min(window_width / conf.window.reference_width, window_height / conf.window.reference_height)
+
+    local font = resources.fonts.default
+    love.graphics.setFont(font)
+
+    local seconds_left = math.ceil(state.step_timer)
+    local text = tostring(seconds_left)
+
+    if seconds_left <= 3 then
+        love.graphics.setColor(0.8, 0.2, 0.2)
+    else
+        love.graphics.setColor(conf.colors.black)
+    end
+
+    local text_width = font:getWidth(text) * scale
+    local x = (window_width - text_width) / 2
+    love.graphics.print(text, x, window_height * 0.025, 0, scale, scale)
 end
 
 local function draw_end_step_button()
@@ -660,7 +715,34 @@ local function reset_step_timer()
     state.step_timer = nil
 end
 
--- ###########################################################################################################################
+local function start_hand_switch()
+    local anim = state.hand_animation
+    anim.phase = "shrink"
+    anim.scale = 1
+    tween.create(
+        state.tweens,
+        conf.hand_animation.shrink_duration,
+        anim,
+        { scale = 0 },
+        tween.easing.inQuad,
+        function()
+            next_step()
+            anim.phase = "grow"
+            anim.scale = 0
+            tween.create(
+                state.tweens,
+                conf.hand_animation.grow_duration,
+                anim,
+                { scale = 1 },
+                tween.easing.outBack,
+                function()
+                    anim.phase = nil
+                    start_step_timer()
+                end
+            )
+        end
+    )
+end
 
 function game.init()
     _G.uid_counter = 0
@@ -672,8 +754,10 @@ function game.init()
 
         current_player_uid = nil,
         next_player_uid = nil,
+        player_order = {},
         selected_element_uid = nil,
         step_timer = nil,
+        hand_animation = { phase = nil, scale = 1 },
 
         elements = {},
         pool = {},
@@ -687,12 +771,10 @@ function game.init()
         drag = init_dnd(),
     }
 
-    local p1 = create_player()
-    local p2 = create_player()
+    local p1 = create_player("Player 1")
+    local p2 = create_player("Player 2")
 
-    print("PLAYER1:", p1)
-    print("PLAYER2:", p2)
-
+    state.player_order = { p1, p2 }
     state.current_player_uid = p1
     state.next_player_uid = p2
 
@@ -766,14 +848,16 @@ function game.update(dt)
         state.is_restart = true
     end
 
+    if input.is_key_released(state.input, "s") and state.hand_animation.phase == nil then
+        reset_step_timer()
+        start_hand_switch()
+    end
+
     update_step_timer(dt)
 
     if is_step_timeout() then
         reset_step_timer()
-        next_step()
-        print("NEXT TURN", state.current_player_uid, state.next_player_uid)
-        -- TODO: нужно включать только по готовности
-        start_step_timer()
+        start_hand_switch()
     end
 
     local view_conf = conf.field.view
@@ -861,11 +945,25 @@ function game.draw()
     draw_board()
 
     local current_hand = get_current_hand()
-    hand.draw(current_hand, conf, resources.textures.hand)
+    local anim = state.hand_animation
 
-    draw_elements(1)
+    if anim.phase ~= nil then
+        local ht = current_hand.transform
+        local cx = ht.x + ht.width  / 2
+        local cy = ht.y + ht.height / 2
+        love.graphics.push()
+        love.graphics.translate(cx, cy)
+        love.graphics.scale(anim.scale, anim.scale)
+        love.graphics.translate(-cx, -cy)
+        hand.draw(current_hand, conf, resources.textures.hand)
+        draw_elements(1)
+        love.graphics.pop()
+    else
+        hand.draw(current_hand, conf, resources.textures.hand)
+        draw_elements(1)
+    end
 
-    -- draw_gui()
+    draw_gui()
 end
 
 return game

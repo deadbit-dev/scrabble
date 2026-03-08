@@ -33,7 +33,11 @@ local conf = {}
 
 ---@class WindowConfig
 ---@field padding Padding
+---@field reference_height number
+---@field reference_width number
 conf.window = {
+    reference_height = 1280,
+    reference_width  = 720,
     padding = {
         top = 0.2,    -- NOTE: ~150px of 1280px
         bottom = 0.2, -- NOTE: ~150px of 1280px
@@ -179,5 +183,10 @@ conf.elements = {
 }
 
 conf.step_time = 10
+
+conf.hand_animation = {
+    shrink_duration = 0.22,
+    grow_duration   = 0.38,
+}
 
 return conf
