@@ -7,6 +7,7 @@ local element = {}
 ---@field world_transform Transform
 ---@field letter string
 ---@field points number
+---@field locked boolean
 
 ---@param conf Config
 ---@param letter string
@@ -41,7 +42,8 @@ function element.create(conf, letter, x, y, width, height)
             z_index = 1
         },
         letter = letter,
-        points = conf.elements.latin[letter].points
+        points = conf.elements.latin[letter].points,
+        locked = false
     }
 end
 

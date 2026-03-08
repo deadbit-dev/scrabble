@@ -429,12 +429,20 @@ local function update_selection()
         local click_pos = state.input.mouse.click_pos
         if not click_pos then return end
 
+        local current_hand_uid = get_current_hand().uid
         local clicked_elem = nil
-        for uid, elem in pairs(state.elements) do
+        for _, elem in pairs(state.elements) do
+            if elem.space.type == SpaceType.HAND and elem.space.data.hand_uid ~= current_hand_uid then
+                goto continue
+            end
+            if elem.space.type == SpaceType.BOARD and elem.locked then
+                goto continue
+            end
             if utils.is_point_in_transform_bounds(elem.world_transform, click_pos) then
                 clicked_elem = elem
                 break
             end
+            ::continue::
         end
 
         if clicked_elem then
@@ -623,7 +631,10 @@ local function detect_press_target()
         local mouse_pos = input.get_mouse_pos(state.input)
         local current_hand_uid = get_current_hand().uid
         for _, elem in pairs(state.elements) do
-            if elem.space and elem.space.type == SpaceType.HAND and elem.space.data.hand_uid ~= current_hand_uid then
+            if elem.space.type == SpaceType.HAND and elem.space.data.hand_uid ~= current_hand_uid then
+                goto continue
+            end
+            if elem.space.type == SpaceType.BOARD and elem.locked then
                 goto continue
             end
             if utils.is_point_in_transform_bounds(elem.world_transform, mouse_pos) then
@@ -677,7 +688,16 @@ local function update_dnd()
     end
 end
 
+local function lock_board_elements()
+    for _, elem in pairs(state.elements) do
+        if elem.space.type == SpaceType.BOARD then
+            elem.locked = true
+        end
+    end
+end
+
 local function next_step()
+    lock_board_elements()
     local tmp = state.next_player_uid
     state.next_player_uid = state.current_player_uid
     state.current_player_uid = tmp
@@ -773,6 +793,7 @@ function game.init()
     space.add_element_to_space(state, create_element("R"), space.board(10, 9))
     space.add_element_to_space(state, create_element("L"), space.board(10, 10))
     space.add_element_to_space(state, create_element("D"), space.board(10, 11))
+    lock_board_elements()
 
     local current_hand = get_current_hand().uid
     space.add_element_to_space(state, create_element("O"), space.hand(current_hand, 1))
