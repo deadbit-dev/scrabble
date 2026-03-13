@@ -323,6 +323,11 @@ local function update(tweens, tween_uid, dt)
         return true
     end
 
+    if tween_data.delay > 0 then
+        tween_data.delay = tween_data.delay - dt
+        return false
+    end
+
     if not tween_data.initial then
         tween_data.initial = copyTables({}, tween_data.target, tween_data.subject)
     end
@@ -351,6 +356,7 @@ end
 ---@field target table
 ---@field easing function
 ---@field clock number
+---@field delay number
 ---@field initial table|nil
 ---@field onComplete function|nil
 
@@ -360,8 +366,9 @@ end
 ---@param target table
 ---@param easing function|string
 ---@param on_complete function|nil
+---@param delay number|nil
 ---@return number tween_uid
-function tween.create(tweens, duration, subject, target, easing, on_complete)
+function tween.create(tweens, duration, subject, target, easing, on_complete, delay)
     easing = getEasingFunction(easing)
     checkNewParams(duration, subject, target, easing)
 
@@ -374,6 +381,7 @@ function tween.create(tweens, duration, subject, target, easing, on_complete)
         target = target,
         easing = easing,
         clock = 0,
+        delay = delay or 0,
         initial = nil,
         onComplete = on_complete
     }
@@ -399,12 +407,13 @@ end
 ---@param dt number
 function tween.update(tweens, dt)
     local tweens_to_remove = {}
+    local callbacks = {}
 
     for tween_uid, tween_data in pairs(tweens) do
         local is_completed = update(tweens, tween_uid, dt)
         if is_completed then
             if tween_data.onComplete then
-                tween_data.onComplete()
+                table.insert(callbacks, tween_data.onComplete)
             end
             table.insert(tweens_to_remove, tween_uid)
         end
@@ -412,6 +421,10 @@ function tween.update(tweens, dt)
 
     for _, tween_uid in ipairs(tweens_to_remove) do
         tween.remove(tweens, tween_uid)
+    end
+
+    for _, cb in ipairs(callbacks) do
+        cb()
     end
 end
 
