@@ -25,6 +25,9 @@ end
 
 local conf = {}
 
+-- "en" or "ru"
+conf.language = "ru"
+
 ---@class Padding
 ---@field top number
 ---@field bottom number
@@ -38,12 +41,21 @@ local conf = {}
 conf.window = {
     reference_height = 1280,
     reference_width  = 720,
-    padding = {
-        top = 0.2,    -- NOTE: ~150px of 1280px
-        bottom = 0.2, -- NOTE: ~150px of 1280px
-        left = 0.07,  -- NOTE: ~50px of 720px
-        right = 0.07  -- NOTE: ~50px of 720px
+    padding          = {
+        top    = 0,
+        bottom = 0,
+        left   = 0.07,
+        right  = 0.07,
     }
+}
+
+conf.layout = {
+    margin_ratio        = 0.02, -- vertical margin from screen top/bottom (fraction of window height)
+    gap_ratio           = 0.18, -- gap between sections (fraction of hand height)
+    top_bar_ratio       = 0.55, -- top bar height (fraction of hand height)
+    top_bar_timer_ratio = 0.62, -- timer font height as fraction of top bar height
+    top_bar_stats_ratio = 0.46, -- player stats font height as fraction of top bar height
+    rounds_indicator_ratio = 0.15, -- round indicator row height as fraction of hand height
 }
 
 ---@class Colors
@@ -133,7 +145,7 @@ conf.text = {
 
     element_padding = 0.15,           -- NOTE: Text offset from element edges
     element_scale_factor = 0.7,       -- NOTE: Element scale relative to element size
-    element_point_scale_factor = 0.7, -- NOTE: Element points scale relative to element scale
+    element_point_scale_factor = 0.6, -- NOTE: Element points scale relative to element scale
 
     -- NOTE: screen element settings (for elements not on the board)
     screen = {
@@ -150,7 +162,7 @@ conf.text = {
 conf.hand = {
     width_ratio = 0.8,
     height_ratio = 0.15,
-    offset_from_center_percent = 1.2,
+    offset_from_center_percent = 0.75,
     min_offset_from_bottom_screen_percent = 0.01,
     min_height = 60,
     element_spacing_ratio = 0.12,
@@ -176,18 +188,61 @@ conf.click = {
 ---@class ElementsConfig
 ---@field [string] table<string, { count: number, points: number }> Elements configuration by alphabet
 conf.elements = {
-    latin = require("alphabets.latin"),
+    latin    = require("alphabets.latin"),
     cyrillic = require("alphabets.cyrillic"),
-    arabic = require("alphabets.arabic"),
-    greek = require("alphabets.greek")
+    arabic   = require("alphabets.arabic"),
+    greek    = require("alphabets.greek")
 }
 
-conf.step_time = 10
+conf.language_alphabet = {
+    en = conf.elements.latin,
+    ru = conf.elements.cyrillic,
+}
+
+conf.step_time = 20
+
+conf.rounds = 5
+conf.round_fill_duration = 0.45
+conf.game_over_delay     = 1.5
+
+conf.gui = {
+    end_step_button = {
+        height_ratio  = 0.45, -- button height relative to hand height
+        padding_ratio = 0.25, -- text padding relative to button height
+        corner_radius = 8,
+    }
+}
+
+conf.start_word_min_length = 4
+
+conf.popup = {
+    width_ratio    = 0.85,
+    padding_ratio  = 0.06,
+    cols           = 6,
+    overlay_alpha  = 0.45,
+    corner_radius  = 16,
+    enter_duration = 0.2,
+    exit_duration  = 0.12,
+    bg_color       = { 0.97, 0.95, 0.99 },
+}
+
+conf.button_animation = {
+    exit_grow_duration   = 0.12,
+    exit_max_scale       = 1.12,
+    exit_shrink_duration = 0.18,
+    pre_switch_delay     = 0.2,
+    enter_duration       = 0.32,
+}
 
 conf.hand_animation = {
-    shrink_duration  = 0.22,
-    grow_duration    = 0.38,
-    compact_duration = 0.15,
+    shrink_duration         = 0.22,
+    grow_duration           = 0.38,
+    compact_duration        = 0.15,
+    return_invalid_duration = 0.7,
+    refill_duration         = 0.55,
+    refill_stagger          = 0.28,
+    cancel_drag_duration    = 0.35,
+    full_hand_delay         = 0.2,
 }
 
 return conf
