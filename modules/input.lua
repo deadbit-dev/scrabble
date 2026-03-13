@@ -33,9 +33,18 @@ local utils = import("utils")
 ---@class KeyboardState
 ---@field buttons {[string]: ButtonState}
 
+---@class TouchPoint
+---@field x number
+---@field y number
+
 ---@class InputState
 ---@field mouse MouseState
 ---@field keyboard KeyboardState
+---@field touches table<any, TouchPoint>
+---@field is_two_finger boolean
+---@field pinch_delta number
+---@field pinch_midpoint Pos|nil
+---@field pinch_prev_dist number
 
 ---@param conf Config
 ---@param drag_start_time number
@@ -86,7 +95,12 @@ function input.init()
         },
         keyboard = {
             buttons = {}
-        }
+        },
+        touches        = {},
+        is_two_finger  = false,
+        pinch_delta    = 0,
+        pinch_midpoint = nil,
+        pinch_prev_dist = 0,
     }
 end
 
@@ -136,6 +150,64 @@ function input.update(state, conf, dt)
     end
 end
 
+local function touch_count(state)
+    local n = 0
+    for _ in pairs(state.touches) do n = n + 1 end
+    return n
+end
+
+local function touch_pair(state)
+    local ts = {}
+    for _, t in pairs(state.touches) do table.insert(ts, t) end
+    return ts[1], ts[2]
+end
+
+---@param state InputState
+---@param id any
+---@param x number
+---@param y number
+function input.touchpressed(state, id, x, y)
+    state.touches[id] = { x = x, y = y }
+    if touch_count(state) == 2 then
+        state.is_two_finger = true
+        local t1, t2 = touch_pair(state)
+        local dx, dy = t2.x - t1.x, t2.y - t1.y
+        state.pinch_prev_dist = math.sqrt(dx * dx + dy * dy)
+    end
+end
+
+---@param state InputState
+---@param id any
+---@param x number
+---@param y number
+function input.touchmoved(state, id, x, y)
+    if not state.touches[id] then return end
+    state.touches[id].x = x
+    state.touches[id].y = y
+
+    if touch_count(state) == 2 and state.is_two_finger then
+        local t1, t2 = touch_pair(state)
+        local dx, dy  = t2.x - t1.x, t2.y - t1.y
+        local new_dist = math.sqrt(dx * dx + dy * dy)
+        if state.pinch_prev_dist > 0 then
+            state.pinch_delta    = new_dist / state.pinch_prev_dist - 1
+            state.pinch_midpoint = { x = (t1.x + t2.x) / 2, y = (t1.y + t2.y) / 2 }
+        end
+        state.pinch_prev_dist = new_dist
+    end
+end
+
+---@param state InputState
+---@param id any
+function input.touchreleased(state, id)
+    state.touches[id] = nil
+    if touch_count(state) < 2 then
+        state.is_two_finger  = false
+        state.pinch_prev_dist = 0
+        state.pinch_midpoint = nil
+    end
+end
+
 ---@param state InputState
 function input.clear(state)
     state.mouse.is_click = false
@@ -145,6 +217,9 @@ function input.clear(state)
     state.mouse.dy = 0
 
     state.mouse.wheel = 0
+
+    state.pinch_delta    = 0
+    state.pinch_midpoint = nil
 
     for _, button in pairs(state.mouse.buttons) do
         if (button.released) then
@@ -215,10 +290,11 @@ end
 ---@param y number
 ---@param button number
 function input.mousereleased(state, x, y, button)
-    state.mouse.buttons[button].released = true
-    state.mouse.buttons[button].pressed = false
     state.mouse.x = x
     state.mouse.y = y
+    if state.mouse.buttons[button] == nil then return end
+    state.mouse.buttons[button].released = true
+    state.mouse.buttons[button].pressed = false
 end
 
 ---@param state InputState

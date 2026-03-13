@@ -7,7 +7,10 @@ Action = {
     MOUSE_PRESSED = 3,
     MOUSE_MOVED = 4,
     MOUSE_RELEASED = 5,
-    MOUSE_WHEEL_MOVED = 6
+    MOUSE_WHEEL_MOVED = 6,
+    TOUCH_PRESSED = 7,
+    TOUCH_MOVED = 8,
+    TOUCH_RELEASED = 9,
 }
 
 ---@class Transform
@@ -69,7 +72,7 @@ function love.keyreleased(key)
 end
 
 function love.mousepressed(x, y, button)
-    game.input(Action.MOUSE_PRESSED, { x = x, y = x, button = button })
+    game.input(Action.MOUSE_PRESSED, { x = x, y = y, button = button })
 end
 
 function love.mousemoved(x, y, dx, dy)
@@ -82,6 +85,18 @@ end
 
 function love.wheelmoved(x, y)
     game.input(Action.MOUSE_WHEEL_MOVED, { delta = y })
+end
+
+function love.touchpressed(id, x, y)
+    game.input(Action.TOUCH_PRESSED, { id = id, x = x, y = y })
+end
+
+function love.touchmoved(id, x, y, dx, dy)
+    game.input(Action.TOUCH_MOVED, { id = id, x = x, y = y, dx = dx, dy = dy })
+end
+
+function love.touchreleased(id, x, y)
+    game.input(Action.TOUCH_RELEASED, { id = id, x = x, y = y })
 end
 
 function love.resize(w, h)
