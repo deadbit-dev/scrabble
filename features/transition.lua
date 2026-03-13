@@ -16,45 +16,57 @@ local tween = import("tween")
 ---@param easing function
 ---@param to SpaceInfo
 ---@param on_complete function|nil
+---@param delay number|nil
 ---@return number
-function transition.to(state, conf, elem_uid, duration, easing, to, on_complete)
+function transition.to(state, conf, elem_uid, duration, easing, to, on_complete, delay)
     local element_data = state.elements[elem_uid]
     local current_space = element_data.space
 
     space.remove_element_from_space(state, current_space)
 
-    local transition_index = #state.transitions + 1
+    local entry = {
+        element_uid = elem_uid,
+        tween_uid   = nil,
+        target_space = to,
+        onComplete  = on_complete,
+    }
+
     local wrapped_callback = function()
-        transition.remove(state, transition_index)
+        transition.remove_by_element(state, elem_uid)
         space.add_element_to_space(state, elem_uid, to)
         if on_complete then
             on_complete()
         end
     end
 
+    local target = space.get_space_transform(state, conf, to)
+    local fly_z = math.max(element_data.world_transform.z_index, target.z_index) + 1
+    element_data.world_transform.z_index = fly_z
+    target.z_index = fly_z
+
     local tween_uid = tween.create(
         state.tweens,
         duration,
         element_data.world_transform,
-        space.get_space_transform(state, conf, to),
+        target,
         easing,
-        wrapped_callback
+        wrapped_callback,
+        delay
     )
 
-    table.insert(state.transitions, {
-        element_uid = elem_uid,
-        tween_uid = tween_uid,
-        target_space = to,
-        onComplete = on_complete,
-    })
-
-    return transition_index
+    entry.tween_uid = tween_uid
+    table.insert(state.transitions, entry)
 end
 
 ---@param state State
----@param idx number
-function transition.remove(state, idx)
-    table.remove(state.transitions, idx)
+---@param elem_uid number
+function transition.remove_by_element(state, elem_uid)
+    for i = #state.transitions, 1, -1 do
+        if state.transitions[i].element_uid == elem_uid then
+            table.remove(state.transitions, i)
+            return
+        end
+    end
 end
 
 -- function transition.pool_to_hand(state, conf, elem_uid, hand_uid, toIndex, onComplete)
