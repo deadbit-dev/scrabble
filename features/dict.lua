@@ -39,17 +39,16 @@ end
 -- end
 
 function dict.word_exists(trie, word)
+    local utils = import("utils")
+    local chars = utils.utf8_chars(word)
     local node = trie
-    for i = 1, #word do
-        local char = word:sub(i, i)
+    for i, char in ipairs(chars) do
         if not node[char] then
             return false
         end
-        -- Если это не последняя буква, переходим в children
-        if i < #word then
+        if i < #chars then
             node = node[char].children
         else
-            -- Для последней буквы проверяем complete в текущем узле
             node = node[char]
         end
     end

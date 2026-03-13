@@ -13,6 +13,44 @@ function utils.get_percent_size(width, height, percent)
     end
 end
 
+local _cyrillic_lower = {
+    ["А"]="а",["Б"]="б",["В"]="в",["Г"]="г",["Д"]="д",["Е"]="е",["Ё"]="ё",
+    ["Ж"]="ж",["З"]="з",["И"]="и",["Й"]="й",["К"]="к",["Л"]="л",["М"]="м",
+    ["Н"]="н",["О"]="о",["П"]="п",["Р"]="р",["С"]="с",["Т"]="т",["У"]="у",
+    ["Ф"]="ф",["Х"]="х",["Ц"]="ц",["Ч"]="ч",["Ш"]="ш",["Щ"]="щ",["Ъ"]="ъ",
+    ["Ы"]="ы",["Ь"]="ь",["Э"]="э",["Ю"]="ю",["Я"]="я",
+}
+
+local _cyrillic_upper = {}
+for up, lo in pairs(_cyrillic_lower) do _cyrillic_upper[lo] = up end
+
+-- Split UTF-8 string into array of characters
+function utils.utf8_chars(s)
+    local chars = {}
+    local i = 1
+    while i <= #s do
+        local byte = s:byte(i)
+        local char_len = byte < 0x80 and 1 or byte < 0xE0 and 2 or byte < 0xF0 and 3 or 4
+        table.insert(chars, s:sub(i, i + char_len - 1))
+        i = i + char_len
+    end
+    return chars
+end
+
+-- UTF-8 aware lowercase (handles ASCII + Cyrillic)
+function utils.utf8_lower(s)
+    return (s:gsub("[\xD0\xD1][\x80-\xBF]", function(c)
+        return _cyrillic_lower[c] or c
+    end):gsub("%a", string.lower))
+end
+
+-- UTF-8 aware uppercase (handles ASCII + Cyrillic)
+function utils.utf8_upper(s)
+    return (s:gsub("[\xD0\xD1][\x80-\xBF]", function(c)
+        return _cyrillic_upper[c] or c
+    end):gsub("%a", string.upper))
+end
+
 function utils.lerp(a, b, t)
     return a + (b - a) * t
 end

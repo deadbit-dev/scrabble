@@ -33,12 +33,18 @@ function resources.load()
 
     log.log("Fonts loaded")
 
-    local success, content = pcall(love.filesystem.read, "dicts/en_trie.json")
+    local conf = import("conf")
+    local lang = conf.language or "en"
+    local trie_file = "dicts/" .. lang .. "_trie.json"
+    local success, content = pcall(love.filesystem.read, trie_file)
 
     if success and content then
         local trie = json.decode(content)
-        log.log("Loaded dict with " .. dict.count_words(trie) .. " words")
-        resources.dict.en = trie
+        local word_count = dict.count_words(trie)
+        log.log("Loaded " .. lang .. " dict with " .. word_count .. " words")
+        resources.dict[lang] = trie
+    else
+        log.warn("Failed to load dict: " .. trie_file)
     end
 end
 

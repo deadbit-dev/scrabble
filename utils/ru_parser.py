@@ -65,7 +65,7 @@ def check_gramota_noun(word):
         meta_gram = meta_soup.find('div', class_='gram')
         if meta_gram == None:
             if(meta_data.status_code == 503):
-                time.sleep(5);
+                time.sleep(5)
                 return check_gramota_noun(word)
             else:
                 raise Exception(f'{meta_data.status_code} | {meta_url} | {word}')

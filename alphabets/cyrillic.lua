@@ -7,6 +7,7 @@ return {
     ["Г"] = { count = 3, points = 3 },
     ["Д"] = { count = 4, points = 2 },
     ["Е"] = { count = 8, points = 1 },
+    ["Ё"] = { count = 1, points = 8 },
     ["Ж"] = { count = 1, points = 5 },
     ["З"] = { count = 1, points = 5 },
     ["И"] = { count = 8, points = 1 },
