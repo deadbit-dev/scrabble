@@ -1,7 +1,8 @@
 local words = {}
 
-local dict = import("dict")
-local log = import("log")
+local dict  = import("dict")
+local log   = import("log")
+local utils = import("utils")
 
 ---@enum Direction
 Direction = {
@@ -61,12 +62,14 @@ end
 ---@param y number
 ---@return {start_pos: Pos, end_pos: Pos }[]
 function words.search(conf, state, resources, x, y)
+    local lang = conf.language or "en"
+    local trie = resources.dict[lang]
     local found_words = {}
     local h_word = find_word(conf, state, x, y, Direction.HORIZONTAL)
     local h_word_len = h_word.end_pos.x - h_word.start_pos.x + 1
     if h_word_len > 1 then
         local word = words.get_word_by_pos_range(state, h_word.start_pos, h_word.end_pos)
-        if words.is_valid(resources.dict.en, word) then
+        if words.is_valid(trie, word) then
             table.insert(found_words, h_word)
         end
     end
@@ -75,7 +78,7 @@ function words.search(conf, state, resources, x, y)
     local v_word_len = v_word.end_pos.y - v_word.start_pos.y + 1
     if v_word_len > 1 then
         local word = words.get_word_by_pos_range(state, v_word.start_pos, v_word.end_pos)
-        if words.is_valid(resources.dict.en, word) then
+        if words.is_valid(trie, word) then
             table.insert(found_words, v_word)
         end
     end
@@ -117,7 +120,32 @@ function words.get_word_by_pos_range(state, start_pos, end_pos)
         word = word .. elem_data.letter
     end
 
-    return string.lower(word)
+    return utils.utf8_lower(word)
+end
+
+---@param conf Config
+---@param state State
+---@param word_range {start_pos: Pos, end_pos: Pos}
+---@return number
+function words.calculate_score(conf, state, word_range)
+    local start_pos = word_range.start_pos
+    local end_pos   = word_range.end_pos
+    local dx = end_pos.x == start_pos.x and 0 or 1
+    local dy = end_pos.y == start_pos.y and 0 or 1
+
+    local total = 0
+    local x, y = start_pos.x, start_pos.y
+    repeat
+        local elem_uid = state.board.elem_uids[y][x]
+        if elem_uid then
+            local multiplier = conf.field.multipliers[y][x] or 1
+            total = total + state.elements[elem_uid].points * multiplier
+        end
+        x = x + dx
+        y = y + dy
+    until x == end_pos.x + dx and y == end_pos.y + dy
+
+    return total
 end
 
 return words

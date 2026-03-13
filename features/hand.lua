@@ -54,7 +54,8 @@ end
 ---@return number|nil
 function hand.get_empty_slot(state)
     for index = 1, state.size do
-        if state.elem_uids[index] == -1 then
+        local val = state.elem_uids[index]
+        if val == nil or val == -1 then
             return index
         end
     end
@@ -130,8 +131,9 @@ end
 
 ---@param state Hand
 ---@param conf Config
-function hand.recalculate(state, conf)
-    state.transform = hand.get_world_transform(conf)
+---@param transform_override Transform|nil
+function hand.recalculate(state, conf, transform_override)
+    state.transform = transform_override or hand.get_world_transform(conf)
     state.slot_transforms = {}
     for i = 1, state.size do
         state.slot_transforms[i] = calculate_slot_transform(state.transform, conf, state.size, i)

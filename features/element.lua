@@ -8,6 +8,7 @@ local element = {}
 ---@field letter string
 ---@field points number
 ---@field locked boolean
+---@field is_wildcard boolean
 
 ---@param conf Config
 ---@param letter string
@@ -42,8 +43,9 @@ function element.create(conf, letter, x, y, width, height)
             z_index = 1
         },
         letter = letter,
-        points = conf.elements.latin[letter].points,
-        locked = false
+        points = (conf.language_alphabet[conf.language] or conf.elements.latin)[letter].points,
+        locked = false,
+        is_wildcard = (letter == "*")
     }
 end
 
@@ -104,7 +106,8 @@ function element.draw(conf, element_data, texture, font)
     love.graphics.pop()
 
     -- NOTE: Calculate points scale and position
-    local point_scale = letter_scale * conf.text.point_scale_factor
+    local digit_factor = element_data.points >= 10 and 0.75 or 1.0
+    local point_scale = letter_scale * conf.text.element_point_scale_factor * digit_factor
     local points_text = tostring(element_data.points)
     local points_width = font:getWidth(points_text)
     local points_height = font:getHeight()
