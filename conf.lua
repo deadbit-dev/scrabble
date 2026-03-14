@@ -246,4 +246,20 @@ conf.hand_animation = {
     full_hand_delay         = 0.2,
 }
 
+conf.word_merge = {
+    duration           = 0.55,
+    pop_fraction       = 0.30,
+    cap_fraction       = 0.25,  -- fraction of sprite width/height used as end caps in 3-slice
+    separator_color    = { 0.2, 0.2, 0.2 },
+    separator_alpha    = 0.40,
+    separator_w_ratio  = 0.025, -- separator line width as fraction of cell height
+    separator_h_ratio  = 0.70,  -- separator line height as fraction of tile-only height (excl. shadow)
+}
+
+conf.initial_word_animation = {
+    fly_duration       = 0.55,
+    stagger            = 0.07,
+    board_rise_duration = 0.55,
+}
+
 return conf
