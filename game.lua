@@ -58,7 +58,8 @@ end
 local function create_element(letter)
     local alphabet = conf.language_alphabet[conf.language] or conf.elements.latin
     assert(alphabet[letter] ~= nil,
-        "create_element: letter '" .. tostring(letter) .. "' not in alphabet (language=" .. tostring(conf.language) .. ")")
+        "create_element: letter '" ..
+        tostring(letter) .. "' not in alphabet (language=" .. tostring(conf.language) .. ")")
     local element_state = element.create(conf, letter)
     state.elements[element_state.uid] = element_state
     return element_state.uid
@@ -275,9 +276,9 @@ local function get_bar_cell_bg_scale(elem_uid)
     local ex, ey = elem.space.data.x, elem.space.data.y
     local scale = 1.0
     for _, bar in ipairs(state.word_bars) do
-        local dx = bar.end_pos.x - bar.start_pos.x
-        local dy = bar.end_pos.y - bar.start_pos.y
-        local n  = math.max(math.abs(dx), math.abs(dy)) + 1
+        local dx     = bar.end_pos.x - bar.start_pos.x
+        local dy     = bar.end_pos.y - bar.start_pos.y
+        local n      = math.max(math.abs(dx), math.abs(dy)) + 1
         local step_x = dx == 0 and 0 or (dx > 0 and 1 or -1)
         local step_y = dy == 0 and 0 or (dy > 0 and 1 or -1)
         local cx, cy = bar.start_pos.x, bar.start_pos.y
@@ -290,7 +291,7 @@ local function get_bar_cell_bg_scale(elem_uid)
                     local cell_edge = (n == 1) and 0 or (i / (n - 1))
                     local t = utils.clamp(
                         (bar.progress - cell_edge) / conf.word_merge.pop_fraction, 0, 1)
-                    local s = 1 - t * t  -- inQuad: hold size, then quickly shrink
+                    local s = 1 - t * t -- inQuad: hold size, then quickly shrink
                     if s < scale then scale = s end
                 end
                 break
@@ -315,12 +316,12 @@ local function draw_element_bar_h(texture, x, y, bar_w, cell_h)
         love.graphics.draw(texture, x, y, 0, bar_w / tw, scale_y)
         return
     end
-    local q_l = love.graphics.newQuad(0,            0, cap_src, th, tw, th)
-    local q_m = love.graphics.newQuad(cap_src,      0, mid_src, th, tw, th)
+    local q_l = love.graphics.newQuad(0, 0, cap_src, th, tw, th)
+    local q_m = love.graphics.newQuad(cap_src, 0, mid_src, th, tw, th)
     local q_r = love.graphics.newQuad(tw - cap_src, 0, cap_src, th, tw, th)
-    love.graphics.draw(texture, q_l, x,                   y, 0, scale_y,          scale_y)
-    love.graphics.draw(texture, q_m, x + cap_dst,         y, 0, mid_dst / mid_src, scale_y)
-    love.graphics.draw(texture, q_r, x + bar_w - cap_dst, y, 0, scale_y,          scale_y)
+    love.graphics.draw(texture, q_l, x, y, 0, scale_y, scale_y)
+    love.graphics.draw(texture, q_m, x + cap_dst, y, 0, mid_dst / mid_src, scale_y)
+    love.graphics.draw(texture, q_r, x + bar_w - cap_dst, y, 0, scale_y, scale_y)
 end
 
 local function draw_element_bar_v(texture, x, y, cell_w, bar_h)
@@ -336,11 +337,11 @@ local function draw_element_bar_v(texture, x, y, cell_w, bar_h)
         love.graphics.draw(texture, x, y, 0, scale_x, bar_h / th)
         return
     end
-    local q_t = love.graphics.newQuad(0, 0,            tw, cap_src, tw, th)
-    local q_m = love.graphics.newQuad(0, cap_src,      tw, mid_src, tw, th)
+    local q_t = love.graphics.newQuad(0, 0, tw, cap_src, tw, th)
+    local q_m = love.graphics.newQuad(0, cap_src, tw, mid_src, tw, th)
     local q_b = love.graphics.newQuad(0, th - cap_src, tw, cap_src, tw, th)
-    love.graphics.draw(texture, q_t, x, y,                   0, scale_x, scale_x)
-    love.graphics.draw(texture, q_m, x, y + cap_dst,         0, scale_x, mid_dst / mid_src)
+    love.graphics.draw(texture, q_t, x, y, 0, scale_x, scale_x)
+    love.graphics.draw(texture, q_m, x, y + cap_dst, 0, scale_x, mid_dst / mid_src)
     love.graphics.draw(texture, q_b, x, y + bar_h - cap_dst, 0, scale_x, scale_x)
 end
 
@@ -383,7 +384,7 @@ local function draw_word_bars()
 
     for _, bar in ipairs(state.word_bars) do
         local st     = board.get_space_transform(state.board, conf.field, bar.start_pos.x, bar.start_pos.y)
-        local end_st = board.get_space_transform(state.board, conf.field, bar.end_pos.x,   bar.end_pos.y)
+        local end_st = board.get_space_transform(state.board, conf.field, bar.end_pos.x, bar.end_pos.y)
         local dx     = bar.end_pos.x - bar.start_pos.x
         local dy     = bar.end_pos.y - bar.start_pos.y
         local n      = math.max(math.abs(dx), math.abs(dy)) + 1
@@ -1111,7 +1112,9 @@ local function pick_random_dict_word(min_len)
         end
     end
 
-    assert(false, "pick_random_dict_word: failed to find a valid word in 200 attempts (language=" .. tostring(conf.language) .. ", min_len=" .. tostring(min_len) .. ")")
+    assert(false,
+        "pick_random_dict_word: failed to find a valid word in 200 attempts (language=" ..
+        tostring(conf.language) .. ", min_len=" .. tostring(min_len) .. ")")
 end
 
 local function pick_random_letter()
@@ -1727,9 +1730,9 @@ local function create_word_bars(on_complete)
         local exists = false
         for _, existing in ipairs(state.word_bars) do
             if existing.start_pos.x == word_range.start_pos.x
-            and existing.start_pos.y == word_range.start_pos.y
-            and existing.end_pos.x   == word_range.end_pos.x
-            and existing.end_pos.y   == word_range.end_pos.y then
+                and existing.start_pos.y == word_range.start_pos.y
+                and existing.end_pos.x == word_range.end_pos.x
+                and existing.end_pos.y == word_range.end_pos.y then
                 exists = true
                 break
             end
@@ -1774,47 +1777,47 @@ local function start_hand_switch()
         cancel_drag(function()
             return_invalid_board_elements(function()
                 create_word_bars(function()
-                anim.phase = "shrink"
-                anim.scale = 1
-                tween.create(
-                    state.tweens,
-                    conf.hand_animation.shrink_duration,
-                    anim,
-                    { scale = 0 },
-                    tween.easing.inQuad,
-                    function()
-                        next_step()
+                    anim.phase = "shrink"
+                    anim.scale = 1
+                    tween.create(
+                        state.tweens,
+                        conf.hand_animation.shrink_duration,
+                        anim,
+                        { scale = 0 },
+                        tween.easing.inQuad,
+                        function()
+                            next_step()
 
-                        if math.floor(state.turns_taken / 2) >= conf.rounds then
-                            anim.phase = "gameover"
-                            local captured_tweens = state.tweens
-                            local dummy = { t = 0 }
-                            tween.create(state.tweens, conf.game_over_delay, dummy, { t = 1 },
-                                tween.easing.linear, function()
-                                    if state.tweens == captured_tweens then
-                                        state.is_restart = true
-                                    end
-                                end)
-                            return
-                        end
-
-                        anim.phase = "grow"
-                        anim.scale = 0
-                        tween.create(
-                            state.tweens,
-                            conf.hand_animation.grow_duration,
-                            anim,
-                            { scale = 1 },
-                            tween.easing.outBack,
-                            function()
-                                anim.phase = nil
-                                fill_current_hand(function()
-                                    start_button_enter(start_step_timer)
-                                end)
+                            if math.floor(state.turns_taken / 2) >= conf.rounds then
+                                anim.phase = "gameover"
+                                local captured_tweens = state.tweens
+                                local dummy = { t = 0 }
+                                tween.create(state.tweens, conf.game_over_delay, dummy, { t = 1 },
+                                    tween.easing.linear, function()
+                                        if state.tweens == captured_tweens then
+                                            state.is_restart = true
+                                        end
+                                    end)
+                                return
                             end
-                        )
-                    end
-                )
+
+                            anim.phase = "grow"
+                            anim.scale = 0
+                            tween.create(
+                                state.tweens,
+                                conf.hand_animation.grow_duration,
+                                anim,
+                                { scale = 1 },
+                                tween.easing.outBack,
+                                function()
+                                    anim.phase = nil
+                                    fill_current_hand(function()
+                                        start_button_enter(start_step_timer)
+                                    end)
+                                end
+                            )
+                        end
+                    )
                 end) -- create_word_bars
             end)
         end)
@@ -1829,7 +1832,7 @@ function game.init()
         resources_loaded = true
     end
 
-    state = {
+    state                    = {
         is_restart           = false,
 
         current_player_uid   = nil,
@@ -1860,41 +1863,41 @@ function game.init()
         drag                 = init_dnd(),
     }
 
-    local p1 = create_player("Pavlik")
-    local p2 = create_player("Vladik")
+    local p1                 = create_player("Pavlik")
+    local p2                 = create_player("Vladik")
 
-    state.player_order = { p1, p2 }
+    state.player_order       = { p1, p2 }
     state.current_player_uid = p1
-    state.next_player_uid = p2
+    state.next_player_uid    = p2
 
-    local word    = pick_random_dict_word(conf.start_word_min_length)
-    local chars   = utils.utf8_chars(word)
-    local center  = math.ceil(conf.field.size / 2)
-    local start_x = center - math.floor(#chars / 2)
+    local word               = pick_random_dict_word(conf.start_word_min_length)
+    local chars              = utils.utf8_chars(word)
+    local center             = math.ceil(conf.field.size / 2)
+    local start_x            = center - math.floor(#chars / 2)
 
     recalculate_layout()
 
     -- offset board to screen center for intro
-    local screen_w = love.graphics.getWidth()
-    local screen_h = love.graphics.getHeight()
-    local bt = state.board.base_transform
+    local screen_w             = love.graphics.getWidth()
+    local screen_h             = love.graphics.getHeight()
+    local bt                   = state.board.base_transform
     state.board.intro_offset_y = screen_h / 2 - (bt.y + bt.height / 2)
 
     -- create elements and fly them in from screen edges
-    local pending  = #chars
+    local pending              = #chars
     for i, ch in ipairs(chars) do
         local letter = utils.utf8_upper(ch)
         local bx     = start_x + i - 1
         local uid    = create_element(letter)
         space.add_element_to_space(state, uid, space.board(bx, center))
 
-        local bst  = board.get_space_transform(state.board, conf.field, bx, center)
+        local bst    = board.get_space_transform(state.board, conf.field, bx, center)
         local ox, oy = 0, 0
         -- odd indices fly from top, even from bottom
         if i % 2 == 1 then
-            oy = -screen_h - bst.y      -- absolute y = -screen_h (top)
+            oy = -screen_h - bst.y -- absolute y = -screen_h (top)
         else
-            oy =  screen_h - bst.y      -- absolute y =  screen_h (bottom)
+            oy = screen_h - bst.y  -- absolute y =  screen_h (bottom)
         end
 
         local elem = state.elements[uid]
