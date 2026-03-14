@@ -257,6 +257,194 @@ local function draw_elements(from_z_index, to_z_index)
     end
 end
 
+-- Returns scale (0..1) for the background tile of an element being consumed by a word bar.
+local function get_bar_cell_bg_scale(elem_uid)
+    local elem = state.elements[elem_uid]
+    if not elem or elem.space.type ~= SpaceType.BOARD then return 1 end
+    local ex, ey = elem.space.data.x, elem.space.data.y
+    local scale = 1.0
+    for _, bar in ipairs(state.word_bars) do
+        local dx = bar.end_pos.x - bar.start_pos.x
+        local dy = bar.end_pos.y - bar.start_pos.y
+        local n  = math.max(math.abs(dx), math.abs(dy)) + 1
+        local step_x = dx == 0 and 0 or (dx > 0 and 1 or -1)
+        local step_y = dy == 0 and 0 or (dy > 0 and 1 or -1)
+        local cx, cy = bar.start_pos.x, bar.start_pos.y
+        for i = 0, n - 1 do
+            if cx == ex and cy == ey then
+                if bar.progress >= 1 then
+                    scale = 0
+                else
+                    -- pop starts when bar front arrives at this cell
+                    local cell_edge = (n == 1) and 0 or (i / (n - 1))
+                    local t = utils.clamp(
+                        (bar.progress - cell_edge) / conf.word_merge.pop_fraction, 0, 1)
+                    local s = 1 - t * t  -- inQuad: hold size, then quickly shrink
+                    if s < scale then scale = s end
+                end
+                break
+            end
+            cx = cx + step_x
+            cy = cy + step_y
+        end
+    end
+    return scale
+end
+
+local function draw_element_bar_h(texture, x, y, bar_w, cell_h)
+    local tw = texture:getWidth()
+    local th = texture:getHeight()
+    local scale_y = cell_h / th
+    local cap_src = math.floor(tw * conf.word_merge.cap_fraction)
+    local cap_dst = cap_src * scale_y
+    local mid_src = tw - 2 * cap_src
+    local mid_dst = bar_w - 2 * cap_dst
+    love.graphics.setColor(conf.colors.white)
+    if mid_dst <= 0 then
+        love.graphics.draw(texture, x, y, 0, bar_w / tw, scale_y)
+        return
+    end
+    local q_l = love.graphics.newQuad(0,            0, cap_src, th, tw, th)
+    local q_m = love.graphics.newQuad(cap_src,      0, mid_src, th, tw, th)
+    local q_r = love.graphics.newQuad(tw - cap_src, 0, cap_src, th, tw, th)
+    love.graphics.draw(texture, q_l, x,                   y, 0, scale_y,          scale_y)
+    love.graphics.draw(texture, q_m, x + cap_dst,         y, 0, mid_dst / mid_src, scale_y)
+    love.graphics.draw(texture, q_r, x + bar_w - cap_dst, y, 0, scale_y,          scale_y)
+end
+
+local function draw_element_bar_v(texture, x, y, cell_w, bar_h)
+    local tw = texture:getWidth()
+    local th = texture:getHeight()
+    local scale_x = cell_w / tw
+    local cap_src = math.floor(th * conf.word_merge.cap_fraction)
+    local cap_dst = cap_src * scale_x
+    local mid_src = th - 2 * cap_src
+    local mid_dst = bar_h - 2 * cap_dst
+    love.graphics.setColor(conf.colors.white)
+    if mid_dst <= 0 then
+        love.graphics.draw(texture, x, y, 0, scale_x, bar_h / th)
+        return
+    end
+    local q_t = love.graphics.newQuad(0, 0,            tw, cap_src, tw, th)
+    local q_m = love.graphics.newQuad(0, cap_src,      tw, mid_src, tw, th)
+    local q_b = love.graphics.newQuad(0, th - cap_src, tw, cap_src, tw, th)
+    love.graphics.draw(texture, q_t, x, y,                   0, scale_x, scale_x)
+    love.graphics.draw(texture, q_m, x, y + cap_dst,         0, scale_x, mid_dst / mid_src)
+    love.graphics.draw(texture, q_b, x, y + bar_h - cap_dst, 0, scale_x, scale_x)
+end
+
+local function draw_board_element_textures()
+    for y = 1, conf.field.size do
+        for x = 1, conf.field.size do
+            local elem_uid = board.get_elem_uid(state.board, x, y)
+            if elem_uid then
+                local elem = state.elements[elem_uid]
+                -- skip elements with elevated z_index (in transition/selected) —
+                -- they are drawn by draw_elements(1), matching old draw_elements(0,1) behavior
+                if elem.world_transform.z_index >= 1 then goto continue end
+                local bg_scale = get_bar_cell_bg_scale(elem_uid)
+                if bg_scale > 0 then
+                    love.graphics.push()
+                    if bg_scale < 1 then
+                        local wt = elem.world_transform
+                        local cx = wt.x + wt.width / 2
+                        local cy = wt.y + wt.height / 2
+                        love.graphics.translate(cx, cy)
+                        love.graphics.scale(bg_scale)
+                        love.graphics.translate(-cx, -cy)
+                    end
+                    element.draw_texture(conf, elem, resources.textures.element)
+                    love.graphics.pop()
+                end
+                ::continue::
+            end
+        end
+    end
+end
+
+local function draw_word_bars()
+    if #state.word_bars == 0 then return end
+    local texture = resources.textures.element
+    local tw = texture:getWidth()
+    local th = texture:getHeight()
+    -- element.png: tile is tw×tw, shadow hangs below — shadow_ratio = (th-tw)/th
+    local shadow_ratio = (th - tw) / th
+
+    for _, bar in ipairs(state.word_bars) do
+        local st     = board.get_space_transform(state.board, conf.field, bar.start_pos.x, bar.start_pos.y)
+        local end_st = board.get_space_transform(state.board, conf.field, bar.end_pos.x,   bar.end_pos.y)
+        local dx     = bar.end_pos.x - bar.start_pos.x
+        local dy     = bar.end_pos.y - bar.start_pos.y
+        local n      = math.max(math.abs(dx), math.abs(dy)) + 1
+        local step_x = dx == 0 and 0 or (dx > 0 and 1 or -1)
+        local step_y = dy == 0 and 0 or (dy > 0 and 1 or -1)
+
+        if bar.dir == Direction.HORIZONTAL then
+            local full_w = end_st.x + end_st.width - st.x
+            local bar_w  = st.width + (full_w - st.width) * bar.progress
+            draw_element_bar_h(texture, st.x, st.y, bar_w, st.height)
+
+            -- vertical separator lines between cells
+            local tile_h = st.height * (1 - shadow_ratio)
+            local sep_h  = tile_h * conf.word_merge.separator_h_ratio
+            local sep_w  = math.max(1, st.height * conf.word_merge.separator_w_ratio)
+            local sep_y  = st.y + (tile_h - sep_h) / 2
+            local sc     = conf.word_merge.separator_color
+            love.graphics.setColor(sc[1], sc[2], sc[3], conf.word_merge.separator_alpha)
+            local prev_x, prev_y = bar.start_pos.x, bar.start_pos.y
+            local cx, cy = bar.start_pos.x + step_x, bar.start_pos.y
+            for i = 1, n - 1 do
+                if bar.progress >= i / (n - 1) then
+                    local prev_st = board.get_space_transform(state.board, conf.field, prev_x, prev_y)
+                    local cell_st = board.get_space_transform(state.board, conf.field, cx, cy)
+                    local sep_x   = (prev_st.x + prev_st.width + cell_st.x) / 2
+                    love.graphics.rectangle("fill", sep_x - sep_w / 2, sep_y, sep_w, sep_h)
+                end
+                prev_x, prev_y = cx, cy
+                cx = cx + step_x
+            end
+        else
+            local full_h = end_st.y + end_st.height - st.y
+            local bar_h  = st.height + (full_h - st.height) * bar.progress
+            draw_element_bar_v(texture, st.x, st.y, st.width, bar_h)
+
+            -- horizontal separator lines between cells
+            local tile_w = st.width
+            local sep_w  = tile_w * conf.word_merge.separator_h_ratio
+            local sep_h  = math.max(1, st.width * conf.word_merge.separator_w_ratio)
+            local sep_x  = st.x + (tile_w - sep_w) / 2
+            local sc     = conf.word_merge.separator_color
+            love.graphics.setColor(sc[1], sc[2], sc[3], conf.word_merge.separator_alpha)
+            local prev_x, prev_y = bar.start_pos.x, bar.start_pos.y
+            local cx, cy = bar.start_pos.x, bar.start_pos.y + step_y
+            for i = 1, n - 1 do
+                if bar.progress >= i / (n - 1) then
+                    local prev_st = board.get_space_transform(state.board, conf.field, prev_x, prev_y)
+                    local cell_st = board.get_space_transform(state.board, conf.field, cx, cy)
+                    local sep_y   = (prev_st.y + prev_st.height + cell_st.y) / 2
+                    love.graphics.rectangle("fill", sep_x, sep_y - sep_h / 2, sep_w, sep_h)
+                end
+                prev_x, prev_y = cx, cy
+                cy = cy + step_y
+            end
+        end
+    end
+end
+
+local function draw_board_element_texts()
+    for y = 1, conf.field.size do
+        for x = 1, conf.field.size do
+            local elem_uid = board.get_elem_uid(state.board, x, y)
+            if elem_uid then
+                local elem = state.elements[elem_uid]
+                if elem.world_transform.z_index >= 1 then goto continue end
+                element.draw_text(conf, elem, resources.fonts.default)
+                ::continue::
+            end
+        end
+    end
+end
+
 local function draw_board()
     local board_textures = {
         field = resources.textures.field,
@@ -267,7 +455,9 @@ local function draw_board()
     board.draw(state.board, conf.field, board_textures, conf.colors.black,
         resources.fonts.default)
 
-    draw_elements(0, 1)
+    draw_board_element_textures()
+    draw_word_bars()
+    draw_board_element_texts()
 end
 
 local function get_top_bar_bounds()
@@ -1493,7 +1683,77 @@ local function trigger_end_step()
     end)
 end
 
+local function find_current_valid_words()
+    local seen   = {}
+    local result = {}
+    for _, elem in pairs(state.elements) do
+        if elem.space.type == SpaceType.BOARD and not elem.locked then
+            local x, y  = elem.space.data.x, elem.space.data.y
+            local found = words.search(conf, state, resources, x, y)
+            for _, word_range in ipairs(found) do
+                local key = word_range.start_pos.x .. "," .. word_range.start_pos.y
+                    .. "-" .. word_range.end_pos.x .. "," .. word_range.end_pos.y
+                if not seen[key] then
+                    seen[key] = true
+                    table.insert(result, word_range)
+                end
+            end
+        end
+    end
+    return result
+end
+
+local function create_word_bars(on_complete)
+    local valid_words = find_current_valid_words()
+    if #valid_words == 0 then
+        on_complete()
+        return
+    end
+    -- add only bars that don't already exist (accumulate across turns)
+    local new_bars = {}
+    for _, word_range in ipairs(valid_words) do
+        local exists = false
+        for _, existing in ipairs(state.word_bars) do
+            if existing.start_pos.x == word_range.start_pos.x
+            and existing.start_pos.y == word_range.start_pos.y
+            and existing.end_pos.x   == word_range.end_pos.x
+            and existing.end_pos.y   == word_range.end_pos.y then
+                exists = true
+                break
+            end
+        end
+        if not exists then
+            local dx  = word_range.end_pos.x - word_range.start_pos.x
+            local bar = {
+                start_pos = word_range.start_pos,
+                end_pos   = word_range.end_pos,
+                dir       = dx ~= 0 and Direction.HORIZONTAL or Direction.VERTICAL,
+                progress  = 0,
+            }
+            table.insert(state.word_bars, bar)
+            table.insert(new_bars, bar)
+        end
+    end
+    if #new_bars == 0 then
+        on_complete()
+        return
+    end
+    local pending = #new_bars
+    for _, bar in ipairs(new_bars) do
+        tween.create(state.tweens, conf.word_merge.duration, bar, { progress = 1 },
+            tween.easing.inOutCubic,
+            function()
+                pending = pending - 1
+                if pending == 0 then
+                    on_complete()
+                end
+            end)
+    end
+end
+
 local function start_hand_switch()
+    assert(state.hand_animation.phase == nil,
+        "start_hand_switch: hand animation already in phase=" .. tostring(state.hand_animation.phase))
     local anim = state.hand_animation
     anim.phase = "return"
     anim.scale = 1
@@ -1501,6 +1761,7 @@ local function start_hand_switch()
     cancel_selection(function()
         cancel_drag(function()
             return_invalid_board_elements(function()
+                create_word_bars(function()
                 anim.phase = "shrink"
                 anim.scale = 1
                 tween.create(
@@ -1542,6 +1803,7 @@ local function start_hand_switch()
                         )
                     end
                 )
+                end) -- create_word_bars
             end)
         end)
     end)
