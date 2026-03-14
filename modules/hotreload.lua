@@ -35,4 +35,11 @@ lurker.postswap = function(f)
             package.loaded[dep].load()
         end
     end
+
+    -- After hotswapping game (and its dependents like main.lua), re-initialize
+    -- game state. When game.lua is reloaded, `local state = {}` resets to an
+    -- empty table, so any input/update call before init() would crash on nil.
+    if module == "game" then
+        package.loaded["game"].init()
+    end
 end
