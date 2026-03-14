@@ -223,8 +223,14 @@ local function update_transitions()
     for i = #state.transitions, 1, -1 do
         local trans = state.transitions[i]
         if trans.tween_uid ~= nil then
+            local tw = state.tweens[trans.tween_uid]
             local target_transform = space.get_space_transform(state, conf, trans.target_space)
-            tween.update_target(state.tweens[trans.tween_uid], target_transform)
+            local saved_z = tw and tw.target and tw.target.z_index
+            tween.update_target(tw, target_transform)
+            -- preserve fly_z: z_index is fixed for the duration of the transition
+            if saved_z and tw and tw.target then
+                tw.target.z_index = saved_z
+            end
         end
     end
 end
