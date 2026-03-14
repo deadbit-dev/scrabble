@@ -251,8 +251,9 @@ end
 ---@param state InputState
 ---@param key string
 function input.keyreleased(state, key)
-    assert(state.keyboard.buttons[key] ~= nil,
-        "keyreleased: key '" .. tostring(key) .. "' released without prior keypressed (input state was reset?)")
+    -- state.input may be reset (e.g. on restart) between keypressed and keyreleased;
+    -- silently ignore the release rather than crashing.
+    if state.keyboard.buttons[key] == nil then return end
     state.keyboard.buttons[key].released = true
     state.keyboard.buttons[key].pressed = false
 end
