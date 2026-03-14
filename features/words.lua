@@ -67,7 +67,7 @@ function words.search(conf, state, resources, x, y)
     local found_words = {}
     local h_word = find_word(conf, state, x, y, Direction.HORIZONTAL)
     local h_word_len = h_word.end_pos.x - h_word.start_pos.x + 1
-    if h_word_len > 1 then
+    if h_word_len >= conf.min_word_length then
         local word = words.get_word_by_pos_range(state, h_word.start_pos, h_word.end_pos)
         if words.is_valid(trie, word) then
             table.insert(found_words, h_word)
@@ -76,7 +76,7 @@ function words.search(conf, state, resources, x, y)
 
     local v_word = find_word(conf, state, x, y, Direction.VERTICAL)
     local v_word_len = v_word.end_pos.y - v_word.start_pos.y + 1
-    if v_word_len > 1 then
+    if v_word_len >= conf.min_word_length then
         local word = words.get_word_by_pos_range(state, v_word.start_pos, v_word.end_pos)
         if words.is_valid(trie, word) then
             table.insert(found_words, v_word)

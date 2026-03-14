@@ -213,6 +213,7 @@ conf.gui = {
     }
 }
 
+conf.min_word_length       = 3
 conf.start_word_min_length = 4
 
 conf.popup = {
