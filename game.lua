@@ -56,17 +56,27 @@ end
 ---@param letter string
 ---@return number
 local function create_element(letter)
+    local alphabet = conf.language_alphabet[conf.language] or conf.elements.latin
+    assert(alphabet[letter] ~= nil,
+        "create_element: letter '" .. tostring(letter) .. "' not in alphabet (language=" .. tostring(conf.language) .. ")")
     local element_state = element.create(conf, letter)
     state.elements[element_state.uid] = element_state
     return element_state.uid
 end
 
 local function get_current_player()
-    return state.players[state.current_player_uid]
+    assert(state.current_player_uid ~= nil, "get_current_player: current_player_uid is nil")
+    local player = state.players[state.current_player_uid]
+    assert(player ~= nil, "get_current_player: player uid=" .. tostring(state.current_player_uid) .. " not found")
+    return player
 end
 
 local function get_current_hand()
-    return state.hands[get_current_player().hand_uid]
+    local player = get_current_player()
+    assert(player.hand_uid ~= nil, "get_current_hand: player has no hand_uid")
+    local hand = state.hands[player.hand_uid]
+    assert(hand ~= nil, "get_current_hand: hand uid=" .. tostring(player.hand_uid) .. " not found")
+    return hand
 end
 
 local function update_board_elemenets_world_transform()
@@ -842,7 +852,7 @@ end
 ---@param elem_uid number
 local function lift_element(elem_uid)
     local element_data = state.elements[elem_uid]
-    if not element_data then return end
+    assert(element_data ~= nil, "lift_element: element uid=" .. tostring(elem_uid) .. " not found")
 
     local target_transform = {
         x = element_data.transform.x,
@@ -864,7 +874,7 @@ end
 ---@param elem_uid number
 local function lower_element(elem_uid)
     local element_data = state.elements[elem_uid]
-    if not element_data then return end
+    assert(element_data ~= nil, "lower_element: element uid=" .. tostring(elem_uid) .. " not found")
 
     local target_transform = {
         x = element_data.transform.x,
@@ -1101,7 +1111,7 @@ local function pick_random_dict_word(min_len)
         end
     end
 
-    return "word"
+    assert(false, "pick_random_dict_word: failed to find a valid word in 200 attempts (language=" .. tostring(conf.language) .. ", min_len=" .. tostring(min_len) .. ")")
 end
 
 local function pick_random_letter()
@@ -1116,6 +1126,7 @@ local function pick_random_letter()
 end
 
 local function fill_current_hand(on_complete)
+    assert(not state.is_filling_hand, "fill_current_hand: re-entry detected (already filling hand)")
     local hand_uid      = state.players[state.current_player_uid].hand_uid
     local hand_state    = state.hands[hand_uid]
     local ht            = hand_state.transform
@@ -1196,7 +1207,7 @@ local function start_drag()
     if not elem_uid then return end
 
     local element_data = state.elements[elem_uid]
-    if not element_data then return end
+    assert(element_data ~= nil, "start_drag: element uid=" .. tostring(elem_uid) .. " not found in state.elements")
 
     local type = element_data.space.type
     local data = element_data.space.data
