@@ -481,23 +481,27 @@ local function get_top_bar_bounds()
 end
 
 local function draw_stats()
-    local bar  = get_top_bar_bounds()
-    local font = resources.fonts.default
+    local bar    = get_top_bar_bounds()
+    local font   = resources.fonts.default
     love.graphics.setFont(font)
-    local scale = bar.height * conf.layout.top_bar_stats_ratio / font:getHeight()
+    local scale  = bar.height * conf.layout.top_bar_stats_ratio / font:getHeight()
     local text_y = bar.y + (bar.height - font:getHeight() * scale) / 2
+    local text_h = font:getHeight() * scale
+    local sp     = conf.gui.stats_panel
 
     local sides = {
         { uid = state.player_order[1], align = "left",  x = bar.x },
         { uid = state.player_order[2], align = "right", x = bar.x + bar.width },
     }
 
+    love.graphics.push()
+    love.graphics.translate(0, state.gui_animation.stats_offset_y)
+
     for _, side in ipairs(sides) do
         local p = state.players[side.uid]
         if not p then goto continue end
 
         local is_current = (side.uid == state.current_player_uid)
-        love.graphics.setColor(is_current and conf.colors.black or { 0.6, 0.6, 0.6 })
 
         local points_str = tostring(p.points)
         if p.pending_points > 0 then
@@ -508,10 +512,22 @@ local function draw_stats()
             or (p.name .. "  " .. points_str)
         local tw   = font:getWidth(text) * scale
         local x    = side.align == "right" and (side.x - tw) or side.x
+
+        -- background panel
+        love.graphics.setColor(sp.color)
+        love.graphics.rectangle("fill",
+            x - sp.padding_x, text_y - sp.padding_y,
+            tw + sp.padding_x * 2, text_h + sp.padding_y * 2,
+            sp.corner_radius, sp.corner_radius)
+
+        -- text
+        love.graphics.setColor(is_current and conf.colors.black or { 0.6, 0.6, 0.6 })
         love.graphics.print(text, x, text_y, 0, scale, scale)
 
         ::continue::
     end
+
+    love.graphics.pop()
 end
 
 local function draw_step_timer()
@@ -1848,6 +1864,7 @@ function game.init()
         ui_visible           = false,
         hand_animation       = { phase = nil, scale = 1 },
         button_animation     = { phase = nil, scale = 0 },
+        gui_animation        = { stats_offset_y = 0, hand_offset_y = 0 },
         popup                = { visible = false, type = nil, elem_uid = nil, scale = 0, phase = nil },
         word_bars            = {},
 
@@ -1919,7 +1936,22 @@ function game.init()
                                 state.board, { intro_offset_y = 0 },
                                 tween.easing.inOutCubic,
                                 function()
+                                    local bar      = get_top_bar_bounds()
+                                    local screen_h = love.graphics.getHeight()
+
+                                    state.gui_animation.stats_offset_y = -(bar.y + bar.height + 10)
+                                    state.gui_animation.hand_offset_y  = screen_h
                                     state.ui_visible = true
+
+                                    tween.create(state.tweens,
+                                        conf.gui_intro_animation.stats_duration,
+                                        state.gui_animation, { stats_offset_y = 0 },
+                                        tween.easing.outCubic)
+                                    tween.create(state.tweens,
+                                        conf.gui_intro_animation.hand_duration,
+                                        state.gui_animation, { hand_offset_y = 0 },
+                                        tween.easing.outCubic)
+
                                     fill_current_hand(function()
                                         start_button_enter(start_step_timer)
                                     end)
@@ -2135,7 +2167,12 @@ function game.draw()
 
     if state.ui_visible then
         local current_hand = get_current_hand()
-        local anim = state.hand_animation
+        local anim         = state.hand_animation
+        local ga           = state.gui_animation
+
+        -- bottom group: hand + elements + round indicators + end button
+        love.graphics.push()
+        love.graphics.translate(0, ga.hand_offset_y)
 
         if anim.phase ~= nil then
             local ht = current_hand.transform
@@ -2153,7 +2190,13 @@ function game.draw()
             draw_elements(1)
         end
 
-        draw_gui()
+        draw_round_indicators()
+        draw_end_step_button()
+
+        love.graphics.pop()
+
+        -- top group: player stats (applies own stats_offset_y internally)
+        draw_stats()
     end
     draw_popup()
 end

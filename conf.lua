@@ -210,7 +210,13 @@ conf.gui = {
         height_ratio  = 0.45, -- button height relative to hand height
         padding_ratio = 0.25, -- text padding relative to button height
         corner_radius = 8,
-    }
+    },
+    stats_panel = {
+        padding_x     = 12,
+        padding_y     = 5,
+        corner_radius = 8,
+        color         = { 1, 1, 1, 0.88 },
+    },
 }
 
 conf.min_word_length       = 3
@@ -257,9 +263,14 @@ conf.word_merge = {
 }
 
 conf.initial_word_animation = {
-    fly_duration       = 0.55,
-    stagger            = 0.07,
+    fly_duration        = 0.55,
+    stagger             = 0.07,
     board_rise_duration = 0.55,
+}
+
+conf.gui_intro_animation = {
+    stats_duration = 0.45,
+    hand_duration  = 0.45,
 }
 
 return conf
