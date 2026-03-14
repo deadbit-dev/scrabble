@@ -139,9 +139,10 @@ end
 
 local function apply_board_transform()
     local zoom_origin = get_board_zoom_origin(state.board.base_transform, state.board.offset, state.board.zoom)
+    local intro_dy = state.board.intro_offset_y or 0
     state.board.transform = {
         x = zoom_origin.x,
-        y = zoom_origin.y,
+        y = zoom_origin.y + intro_dy,
         width = state.board.base_transform.width * state.board.zoom,
         height = state.board.base_transform.height * state.board.zoom,
         z_index = 0
@@ -1080,7 +1081,7 @@ local function pick_random_dict_word(min_len)
             local child_keys = {}
             for k in pairs(node.children) do table.insert(child_keys, k) end
 
-            local can_stop = node.complete and #word >= min_len
+            local can_stop = node.complete and #utils.utf8_chars(word) >= min_len
             local has_children = #child_keys > 0
 
             if can_stop and (not has_children or math.random() < 0.4) then
@@ -1830,9 +1831,11 @@ function game.init()
         is_filling_hand      = false,
         pending_hand_switch  = false,
         button_visible       = false,
+        ui_visible           = false,
         hand_animation       = { phase = nil, scale = 1 },
         button_animation     = { phase = nil, scale = 0 },
         popup                = { visible = false, type = nil, elem_uid = nil, scale = 0, phase = nil },
+        word_bars            = {},
 
         elements             = {},
         pool                 = {},
@@ -1853,21 +1856,73 @@ function game.init()
     state.current_player_uid = p1
     state.next_player_uid = p2
 
-    local word = pick_random_dict_word(conf.start_word_min_length)
-    local chars = utils.utf8_chars(word)
-    local center = math.ceil(conf.field.size / 2)
+    local word    = pick_random_dict_word(conf.start_word_min_length)
+    local chars   = utils.utf8_chars(word)
+    local center  = math.ceil(conf.field.size / 2)
     local start_x = center - math.floor(#chars / 2)
-    for i, ch in ipairs(chars) do
-        local letter = utils.utf8_upper(ch)
-        space.add_element_to_space(state, create_element(letter), space.board(start_x + i - 1, center))
-    end
-
-    lock_board_elements()
 
     recalculate_layout()
-    fill_current_hand(function()
-        start_button_enter(start_step_timer)
-    end)
+
+    -- offset board to screen center for intro
+    local screen_w = love.graphics.getWidth()
+    local screen_h = love.graphics.getHeight()
+    local bt = state.board.base_transform
+    state.board.intro_offset_y = screen_h / 2 - (bt.y + bt.height / 2)
+
+    -- create elements and fly them in from screen edges
+    local pending  = #chars
+    for i, ch in ipairs(chars) do
+        local letter = utils.utf8_upper(ch)
+        local bx     = start_x + i - 1
+        local uid    = create_element(letter)
+        space.add_element_to_space(state, uid, space.board(bx, center))
+
+        local bst  = board.get_space_transform(state.board, conf.field, bx, center)
+        local ox, oy = 0, 0
+        -- odd indices fly from top, even from bottom
+        if i % 2 == 1 then
+            oy = -screen_h - bst.y      -- absolute y = -screen_h (top)
+        else
+            oy =  screen_h - bst.y      -- absolute y =  screen_h (bottom)
+        end
+
+        local elem = state.elements[uid]
+        elem.transform.x = ox
+        elem.transform.y = oy
+
+        local function fly()
+            tween.create(state.tweens,
+                conf.initial_word_animation.fly_duration,
+                elem.transform, { x = 0, y = 0 },
+                tween.easing.outCubic,
+                function()
+                    pending = pending - 1
+                    if pending == 0 then
+                        create_word_bars(function()
+                            lock_board_elements()
+                            tween.create(state.tweens,
+                                conf.initial_word_animation.board_rise_duration,
+                                state.board, { intro_offset_y = 0 },
+                                tween.easing.inOutCubic,
+                                function()
+                                    state.ui_visible = true
+                                    fill_current_hand(function()
+                                        start_button_enter(start_step_timer)
+                                    end)
+                                end)
+                        end)
+                    end
+                end)
+        end
+
+        local delay = (i - 1) * conf.initial_word_animation.stagger
+        if delay > 0 then
+            local d = { t = 0 }
+            tween.create(state.tweens, delay, d, { t = 1 }, tween.easing.linear, fly)
+        else
+            fly()
+        end
+    end
 end
 
 function game.resize()
@@ -2064,26 +2119,28 @@ function game.draw()
 
     draw_board()
 
-    local current_hand = get_current_hand()
-    local anim = state.hand_animation
+    if state.ui_visible then
+        local current_hand = get_current_hand()
+        local anim = state.hand_animation
 
-    if anim.phase ~= nil then
-        local ht = current_hand.transform
-        local cx = ht.x + ht.width / 2
-        local cy = ht.y + ht.height / 2
-        love.graphics.push()
-        love.graphics.translate(cx, cy)
-        love.graphics.scale(anim.scale, anim.scale)
-        love.graphics.translate(-cx, -cy)
-        hand.draw(current_hand, conf, resources.textures.hand)
-        draw_elements(1)
-        love.graphics.pop()
-    else
-        hand.draw(current_hand, conf, resources.textures.hand)
-        draw_elements(1)
+        if anim.phase ~= nil then
+            local ht = current_hand.transform
+            local cx = ht.x + ht.width / 2
+            local cy = ht.y + ht.height / 2
+            love.graphics.push()
+            love.graphics.translate(cx, cy)
+            love.graphics.scale(anim.scale, anim.scale)
+            love.graphics.translate(-cx, -cy)
+            hand.draw(current_hand, conf, resources.textures.hand)
+            draw_elements(1)
+            love.graphics.pop()
+        else
+            hand.draw(current_hand, conf, resources.textures.hand)
+            draw_elements(1)
+        end
+
+        draw_gui()
     end
-
-    draw_gui()
     draw_popup()
 end
 
