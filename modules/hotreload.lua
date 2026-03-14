@@ -29,8 +29,12 @@ lurker.postswap = function(f)
 
     for i = 1, #_G.dependencies[module] do
         local dep = _G.dependencies[module][i]
-        -- TODO: need store dependencies with .lua instead of just name
-        lurker.hotswapfile(dep .. ".lua")
+        -- Skip entry-point files (like main.lua) that are not loaded as modules
+        -- and are not accessible via love.filesystem.getInfo (lurker.resetfile crashes).
+        -- These don't need hotswapping: live references use package.loaded["game"] directly.
+        if package.loaded[dep] ~= nil then
+            lurker.hotswapfile(dep .. ".lua")
+        end
         if (dep == "resources") then
             package.loaded[dep].load()
         end

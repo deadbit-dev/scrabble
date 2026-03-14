@@ -42,7 +42,13 @@ end
 require("hotreload")
 
 local lurker = require("lurker")
-local game = import("game")
+import("game") -- register dependency so game.lua changes propagate
+
+-- Proxy table: always delegates to the current hotswapped game module,
+-- so main.lua never needs to be re-required when game.lua changes.
+local game = setmetatable({}, {
+    __index = function(_, k) return package.loaded["game"][k] end
+})
 
 function GENERATE_UID()
     if (_G.uid_counter == nil) then _G.uid_counter = 0 end
