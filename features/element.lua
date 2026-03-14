@@ -52,47 +52,39 @@ end
 ---@param conf Config
 ---@param element_data Element
 ---@param texture any
----@param font any
-function element.draw(conf, element_data, texture, font)
-    if not element_data or not element_data.transform then return end
+function element.draw_texture(conf, element_data, texture)
+    if not element_data or not element_data.world_transform then return end
+    if not texture then return end
 
-    local world_transform = element_data.world_transform;
+    local world_transform = element_data.world_transform
+    local texture_scaleX = world_transform.width  / texture:getWidth()
+    local texture_scaleY = world_transform.height / texture:getHeight()
 
-    -- NOTE: Use element dimensions from transform
-    local texture_scaleX = 1
-    local texture_scaleY = 1
-    local element_width = world_transform.width
-    local element_height = world_transform.height
-
-    if texture then
-        texture_scaleX = element_width / texture:getWidth()
-        texture_scaleY = element_height / texture:getHeight()
-        element_width = texture:getWidth() * texture_scaleX
-        element_height = texture:getHeight() * texture_scaleY
-    end
-
-    -- NOTE: Draw element texture
     love.graphics.setColor(conf.colors.white)
-    if (texture) then
-        love.graphics.draw(texture, world_transform.x, world_transform.y, 0,
-            texture_scaleX,
-            texture_scaleY)
-    end
+    love.graphics.draw(texture, world_transform.x, world_transform.y, 0,
+        texture_scaleX, texture_scaleY)
+end
 
-    -- NOTE: Setup font for text rendering
+---@param conf Config
+---@param element_data Element
+---@param font any
+function element.draw_text(conf, element_data, font)
+    if not element_data or not element_data.world_transform then return end
+
+    local world_transform = element_data.world_transform
+    local element_width   = world_transform.width
+    local element_height  = world_transform.height
+
     love.graphics.setColor(conf.text.colors.element)
 
-    if (font == nil) then
-        font = love.graphics.getFont()
-    end
-
+    if font == nil then font = love.graphics.getFont() end
     love.graphics.setFont(font)
 
-    local text_width = font:getWidth(element_data.letter)
+    local text_width  = font:getWidth(element_data.letter)
     local text_height = font:getHeight()
 
     -- NOTE: Calculate letter scale and position
-    local letter_scale = (element_width * conf.text.letter_scale_factor) / text_height
+    local letter_scale   = (element_width * conf.text.letter_scale_factor) / text_height
     local letter_scaledX = ((element_width - text_width * letter_scale) / 2 - element_width * conf.text.element_padding) /
         letter_scale
     local letter_scaledY = ((element_height - text_height * letter_scale) / 2 - element_height * conf.text.element_padding) /
@@ -106,11 +98,11 @@ function element.draw(conf, element_data, texture, font)
     love.graphics.pop()
 
     -- NOTE: Calculate points scale and position
-    local digit_factor = element_data.points >= 10 and 0.75 or 1.0
-    local point_scale = letter_scale * conf.text.element_point_scale_factor * digit_factor
-    local points_text = tostring(element_data.points)
-    local points_width = font:getWidth(points_text)
-    local points_height = font:getHeight()
+    local digit_factor   = element_data.points >= 10 and 0.75 or 1.0
+    local point_scale    = letter_scale * conf.text.element_point_scale_factor * digit_factor
+    local points_text    = tostring(element_data.points)
+    local points_width   = font:getWidth(points_text)
+    local points_height  = font:getHeight()
     local points_scaledX = (element_width - points_width * point_scale - element_width * conf.text.element_padding) /
         point_scale
     local points_scaledY = (element_height - points_height * point_scale - element_height * conf.text.element_padding) /
@@ -122,6 +114,15 @@ function element.draw(conf, element_data, texture, font)
     love.graphics.print(element_data.points, world_transform.x / point_scale + points_scaledX,
         world_transform.y / point_scale + points_scaledY)
     love.graphics.pop()
+end
+
+---@param conf Config
+---@param element_data Element
+---@param texture any
+---@param font any
+function element.draw(conf, element_data, texture, font)
+    element.draw_texture(conf, element_data, texture)
+    element.draw_text(conf, element_data, font)
 end
 
 return element
