@@ -273,4 +273,27 @@ conf.gui_intro_animation = {
     hand_duration  = 0.45,
 }
 
+conf.menu = {
+    title_height_ratio    = 0.068, -- title font height as fraction of window height
+    subtitle_height_ratio = 0.030, -- subtitle font height as fraction of window height
+    pulse_min_alpha       = 0.35,
+    pulse_max_alpha       = 1.0,
+    pulse_speed           = 0.6,   -- pulses per second
+}
+
+conf.definition_hold_time = 0.6   -- seconds to hold on a locked element to open definition
+
+conf.definition_popup = {
+    width_ratio        = 0.88,
+    padding_ratio      = 0.05,
+    overlay_alpha      = 0.45,
+    bg_color           = { 0.98, 0.97, 0.94, 1 },
+    corner_radius      = 14,
+    title_height_ratio = 0.038,
+    body_height_ratio  = 0.026,
+    enter_duration     = 0.30,
+    exit_duration      = 0.18,
+    max_scroll_speed   = 30,
+}
+
 return conf

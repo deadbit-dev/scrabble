@@ -1840,6 +1840,271 @@ local function start_hand_switch()
     end)
 end
 
+-- ─── Menu ────────────────────────────────────────────────────────────────────
+
+local function draw_menu()
+    local ww, wh = love.graphics.getDimensions()
+    local font   = resources.fonts.default
+    local fh     = font:getHeight()
+    local mc     = conf.menu
+    love.graphics.setFont(font)
+
+    -- Title
+    local title       = "СКРЭББЛ"
+    local title_scale = wh * mc.title_height_ratio / fh
+    local tw          = font:getWidth(title) * title_scale
+    love.graphics.setColor(conf.colors.black)
+    love.graphics.print(title, (ww - tw) / 2, wh * 0.38, 0, title_scale, title_scale)
+
+    -- Pulsing subtitle
+    local alpha = mc.pulse_min_alpha
+        + (mc.pulse_max_alpha - mc.pulse_min_alpha)
+        * (0.5 + 0.5 * math.sin(menu.pulse_t * mc.pulse_speed * math.pi * 2))
+    local sub       = "Нажмите для начала"
+    local sub_scale = wh * mc.subtitle_height_ratio / fh
+    local sw        = font:getWidth(sub) * sub_scale
+    local bc        = conf.colors.black
+    love.graphics.setColor(bc[1], bc[2], bc[3], alpha)
+    love.graphics.print(sub, (ww - sw) / 2, wh * 0.56, 0, sub_scale, sub_scale)
+end
+
+-- ─── Definition popup ────────────────────────────────────────────────────────
+
+-- Returns the word string (horizontal or vertical) that contains the locked cell (bx, by).
+local function find_locked_word_at(bx, by)
+    local em   = state.board.elem_uids
+    local size = conf.field.size
+
+    -- horizontal extent
+    local lx = bx
+    while lx > 1 and em[by][lx - 1] ~= nil do lx = lx - 1 end
+    local rx = bx
+    while rx < size and em[by][rx + 1] ~= nil do rx = rx + 1 end
+    if rx - lx + 1 >= conf.min_word_length then
+        return words.get_word_by_pos_range(state, { x = lx, y = by }, { x = rx, y = by })
+    end
+
+    -- vertical extent
+    local ty = by
+    while ty > 1 and em[ty - 1] and em[ty - 1][bx] ~= nil do ty = ty - 1 end
+    local bty = by
+    while bty < size and em[bty + 1] and em[bty + 1][bx] ~= nil do bty = bty + 1 end
+    if bty - ty + 1 >= conf.min_word_length then
+        return words.get_word_by_pos_range(state, { x = bx, y = ty }, { x = bx, y = bty })
+    end
+
+    return nil
+end
+
+local function get_definition_popup_bounds()
+    local ww, wh = love.graphics.getDimensions()
+    local dc     = conf.definition_popup
+    local pw     = ww * dc.width_ratio
+    local ph     = wh * 0.62
+    return { x = (ww - pw) / 2, y = (wh - ph) / 2, width = pw, height = ph }
+end
+
+open_definition_popup = function(bx, by)
+    local word = find_locked_word_at(bx, by)
+    if not word then return end
+    local dp       = state.definition_popup
+    dp.visible     = true
+    dp.loading     = true
+    dp.word        = word
+    dp.text        = nil
+    dp.scroll      = 0
+    dp.scale       = 0
+    dp.phase       = "enter"
+    love.thread.getChannel("wiki_result"):clear()
+    state.wiki_thread = love.thread.newThread(WIKI_THREAD_CODE)
+    state.wiki_thread:start(word, conf.language)
+    tween.create(state.tweens, conf.definition_popup.enter_duration, dp, { scale = 1 },
+        tween.easing.outBack, function() dp.phase = nil end)
+end
+
+local function close_definition_popup()
+    local dp  = state.definition_popup
+    dp.phase  = "exit"
+    state.wiki_thread = nil
+    tween.create(state.tweens, conf.definition_popup.exit_duration, dp, { scale = 0 },
+        tween.easing.inQuad, function()
+            dp.visible  = false
+            dp.loading  = false
+            dp.word     = nil
+            dp.text     = nil
+            dp.phase    = nil
+        end)
+end
+
+local function draw_definition_popup()
+    local dp = state.definition_popup
+    if not dp.visible then return end
+
+    local ww, wh = love.graphics.getDimensions()
+    local dc     = conf.definition_popup
+    local lay    = get_definition_popup_bounds()
+    local font   = resources.fonts.default
+    local fh     = font:getHeight()
+
+    -- overlay
+    love.graphics.setColor(0, 0, 0, dc.overlay_alpha * dp.scale)
+    love.graphics.rectangle("fill", 0, 0, ww, wh)
+
+    -- panel scaled from center
+    local cx = lay.x + lay.width / 2
+    local cy = lay.y + lay.height / 2
+    love.graphics.push()
+    love.graphics.translate(cx, cy)
+    love.graphics.scale(dp.scale, dp.scale)
+    love.graphics.translate(-cx, -cy)
+
+    love.graphics.setColor(dc.bg_color)
+    love.graphics.rectangle("fill", lay.x, lay.y, lay.width, lay.height, dc.corner_radius, dc.corner_radius)
+
+    local pad         = lay.width * dc.padding_ratio
+    local title_scale = wh * dc.title_height_ratio / fh
+    local body_scale  = wh * dc.body_height_ratio  / fh
+    local title_h     = fh * title_scale
+
+    -- word title (centered)
+    love.graphics.setFont(font)
+    love.graphics.setColor(conf.colors.black)
+    local tw      = font:getWidth(dp.word or "") * title_scale
+    local title_x = lay.x + (lay.width - tw) / 2
+    local title_y = lay.y + pad
+    love.graphics.print(dp.word or "", title_x, title_y, 0, title_scale, title_scale)
+
+    -- separator
+    local sep_y = title_y + title_h + pad * 0.5
+    local bc    = conf.colors.black
+    love.graphics.setColor(bc[1], bc[2], bc[3], 0.15)
+    love.graphics.rectangle("fill", lay.x + pad, sep_y, lay.width - 2 * pad, 1)
+
+    -- body area
+    local body_x = lay.x + pad
+    local body_y = sep_y + pad * 0.5
+    local body_w = lay.width - 2 * pad
+    local body_h = (lay.y + lay.height - pad) - body_y
+
+    love.graphics.setScissor(body_x, body_y, body_w, body_h)
+    love.graphics.setColor(conf.colors.black)
+
+    if dp.loading then
+        local dots        = string.rep(".", math.floor(love.timer.getTime() * 2) % 4)
+        local load_str    = "Загрузка" .. dots
+        local ls          = font:getWidth(load_str) * body_scale
+        love.graphics.print(load_str,
+            lay.x + (lay.width - ls) / 2,
+            body_y + body_h / 2 - fh * body_scale / 2,
+            0, body_scale, body_scale)
+    elseif dp.text then
+        love.graphics.push()
+        love.graphics.translate(body_x, body_y - dp.scroll)
+        love.graphics.scale(body_scale, body_scale)
+        love.graphics.printf(dp.text, 0, 0, body_w / body_scale, "left")
+        love.graphics.pop()
+    end
+
+    love.graphics.setScissor()
+    love.graphics.pop()
+end
+
+local function update_definition_popup(dt)
+    local dp = state.definition_popup
+    if not dp.visible then return end
+
+    -- poll wiki result channel
+    if dp.loading then
+        local result = love.thread.getChannel("wiki_result"):pop()
+        if result then
+            state.wiki_thread = nil
+            if result:sub(1, 6) == "ERROR:" then
+                local err = result:sub(7)
+                if err == "curl" or err == "empty" then
+                    dp.text = "Не удалось получить определение.\nПроверьте соединение с интернетом."
+                else
+                    dp.text = "Ошибка загрузки."
+                end
+            else
+                local ok, parsed = pcall(json.decode, result)
+                if ok and parsed and parsed.extract and parsed.extract ~= "" then
+                    dp.text = parsed.extract
+                    if parsed.title then dp.word = parsed.title end
+                elseif ok and parsed and parsed.type == "disambiguation" then
+                    dp.text = "Это слово неоднозначно. Уточните запрос."
+                else
+                    dp.text = "Определение не найдено в Википедии."
+                end
+            end
+            dp.loading = false
+        end
+    end
+
+    -- scroll with mouse wheel
+    if not dp.loading and dp.text and state.input.mouse.wheel ~= 0 then
+        local lay = get_definition_popup_bounds()
+        local mp  = input.get_mouse_pos(state.input)
+        if utils.is_point_in_transform_bounds(lay, mp) then
+            dp.scroll = math.max(0, dp.scroll - state.input.mouse.wheel * conf.definition_popup.max_scroll_speed)
+        end
+    end
+
+    -- close on click outside popup
+    if dp.phase == nil and state.input.mouse.is_click then
+        local lay = get_definition_popup_bounds()
+        local mp  = input.get_mouse_pos(state.input)
+        if not utils.is_point_in_transform_bounds(lay, mp) then
+            close_definition_popup()
+        end
+    end
+end
+
+local function update_long_press(dt)
+    if not state.ui_visible then return end
+    if state.popup.visible or state.definition_popup.visible then return end
+    if state.hand_animation.phase ~= nil then return end
+
+    local mp      = input.get_mouse_pos(state.input)
+    local pressed = input.is_mouse_pressed(state.input, 1)
+
+    if pressed and not state.input.mouse.is_drag then
+        local hit_uid = nil
+        for uid, elem in pairs(state.elements) do
+            if elem.space.type == SpaceType.BOARD and elem.locked then
+                if utils.is_point_in_transform_bounds(elem.world_transform, mp) then
+                    hit_uid = uid
+                    break
+                end
+            end
+        end
+
+        if hit_uid then
+            if state.long_press.element_uid ~= hit_uid then
+                state.long_press.timer       = 0
+                state.long_press.element_uid = hit_uid
+                state.long_press.triggered   = false
+            end
+            state.long_press.timer = state.long_press.timer + dt
+            if state.long_press.timer >= conf.definition_hold_time
+                and not state.long_press.triggered then
+                state.long_press.triggered = true
+                local elem = state.elements[hit_uid]
+                open_definition_popup(elem.space.data.x, elem.space.data.y)
+            end
+        else
+            state.long_press.timer       = 0
+            state.long_press.element_uid = nil
+            state.long_press.triggered   = false
+        end
+    else
+        state.long_press.timer       = 0
+        state.long_press.element_uid = nil
+        if not pressed then
+            state.long_press.triggered = false
+        end
+    end
+end
+
 function game.init()
     _G.uid_counter = 0
 
@@ -1847,6 +2112,14 @@ function game.init()
         resources.load()
         resources_loaded = true
     end
+
+    state        = { input = input.init() }
+    menu.active  = true
+    menu.pulse_t = 0
+end
+
+local function start_game()
+    menu.active = false
 
     state                    = {
         is_restart           = false,
@@ -1866,6 +2139,9 @@ function game.init()
         button_animation     = { phase = nil, scale = 0 },
         gui_animation        = { stats_offset_y = 0, hand_offset_y = 0 },
         popup                = { visible = false, type = nil, elem_uid = nil, scale = 0, phase = nil },
+        definition_popup     = { visible = false, loading = false, word = nil, text = nil,
+                                 scale = 0, phase = nil, scroll = 0 },
+        long_press           = { timer = 0, element_uid = nil, triggered = false },
         word_bars            = {},
 
         elements             = {},
@@ -1972,7 +2248,9 @@ function game.init()
 end
 
 function game.resize()
-    recalculate_layout()
+    if not menu.active then
+        recalculate_layout()
+    end
 end
 
 function game.input(action_id, action)
@@ -2017,6 +2295,20 @@ function game.update(dt)
     if state.is_restart then game.init() end
 
     input.update(state.input, conf, dt)
+
+    if menu.active then
+        menu.pulse_t = menu.pulse_t + dt
+        if input.is_key_released(state.input, "f11") then
+            local fullscreen = not love.window.getFullscreen()
+            love.window.setFullscreen(fullscreen, "desktop")
+        end
+        if state.input.mouse.is_click then
+            start_game()
+        end
+        input.clear(state.input)
+        return
+    end
+
     if state.hand_animation.phase == nil and not state.is_filling_hand then
         detect_press_target()
     end
@@ -2035,6 +2327,7 @@ function game.update(dt)
         and state.button_animation.phase == nil
         and not state.pending_hand_switch
         and not state.popup.visible
+        and not state.definition_popup.visible
         and not state.is_filling_hand
 
     if input.is_key_released(state.input, "s") and can_end_step then
@@ -2146,12 +2439,15 @@ function game.update(dt)
     apply_board_transform()
     update_current_hand_elements()
 
-    if state.hand_animation.phase == nil and not state.is_filling_hand and not state.popup.visible then
+    if state.hand_animation.phase == nil and not state.is_filling_hand and not state.popup.visible
+        and not state.definition_popup.visible then
         update_selection()
         update_dnd()
     end
 
     update_popup()
+    update_definition_popup(dt)
+    update_long_press(dt)
 
     update_transitions()
 
@@ -2162,6 +2458,11 @@ end
 
 function game.draw()
     love.graphics.clear(conf.colors.background)
+
+    if menu.active then
+        draw_menu()
+        return
+    end
 
     draw_board()
 
@@ -2199,6 +2500,7 @@ function game.draw()
         draw_stats()
     end
     draw_popup()
+    draw_definition_popup()
 end
 
 return game
